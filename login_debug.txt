@@ -1,0 +1,30 @@
+Login Failed: User teacher not found
+Login Failed: User teacher_g1_1 not found
+Login Failed: User teacher_g1_1 not found
+Login Failed: User teacher_g1_1 not found
+Login Failed: User teacher_g1_1 not found
+Login Failed: User teacher_g1_1 not found
+Login Failed: Role mismatch for teacher. DB=Teacher, Req=Student
+Login Failed: Role mismatch for teacher. DB=Teacher, Req=Student
+Login Failed: Role mismatch for teacher. DB=Teacher, Req=Student
+Login Failed: Role mismatch for teacher. DB=Teacher, Req=Student
+Login Failed: User principle_noble not found
+Login Failed: User principle_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User principal_noble not found
+Login Failed: User parent_noble not found
+Login Failed: User parent_g1_1 not found
+Login Failed: User parent not found
+Login Failed: User parent not found
+Login Failed: User parent not found
+Login Failed: Role mismatch for parent_g1. DB=Parent, Req=Admin
+Login Failed: Role mismatch for parent_g1. DB=Parent, Req=Admin
+Login Failed: Role mismatch for parent_g1. DB=Parent, Req=Admin
+Login Failed: User principal_noble not found

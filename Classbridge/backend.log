@@ -1,0 +1,319 @@
+2026-01-27 13:43:30,298 [INFO] AI Chat System Initialized (Groq Powered).
+2026-01-27 13:43:30,312 [INFO] Grade Helper AI Initialized.
+INFO:     Will watch for changes in these directories: ['/Users/surjeet/Documents/Classbridge02 5']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [46779] using WatchFiles
+2026-01-27 13:43:30,844 [INFO] AI Chat System Initialized (Groq Powered).
+2026-01-27 13:43:30,858 [INFO] Grade Helper AI Initialized.
+2026-01-27 13:43:31,029 [INFO] AI Chat System Initialized (Groq Powered).
+2026-01-27 13:43:31,042 [INFO] Grade Helper AI Initialized.
+INFO:     Started server process [46828]
+INFO:     Waiting for application startup.
+2026-01-27 13:43:31,086 [INFO] Initializing Database...
+2026-01-27 13:43:31,190 [INFO] Database Initialized.
+2026-01-27 13:43:31,190 [INFO] Training Recommendation Model (Lazy loaded on demand)...
+2026-01-27 13:43:31,190 [INFO] Model training deferred.
+INFO:     Application startup complete.
+2026-01-27 16:09:31,693 [INFO] 1 change detected
+INFO:     127.0.0.1:59419 - "OPTIONS /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59419 - "GET /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59419 - "OPTIONS /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59419 - "GET /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59419 - "OPTIONS /api/moodle/grades HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59419 - "GET /api/moodle/grades HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+2026-01-27 16:09:46,730 [INFO] Login attempt for user: student_g1_1
+2026-01-27 16:09:46,915 [INFO] Password correct for student_g1_1, triggering 2FA.
+INFO:     127.0.0.1:59420 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "OPTIONS /api/auth/verify-2fa HTTP/1.1" 200 OK
+2026-01-27 16:09:51,477 [INFO] 2FA Successful for user: student_g1_1
+2026-01-27 16:09:51,496 [ERROR] Failed to write auth log: duplicate key value violates unique constraint "auth_logs_pkey"
+DETAIL:  Key (id)=(450) already exists.
+
+INFO:     127.0.0.1:59420 - "POST /api/auth/verify-2fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "OPTIONS /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "GET /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "OPTIONS /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59426 - "OPTIONS /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "GET /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59426 - "GET /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "OPTIONS /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59426 - "OPTIONS /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "GET /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59426 - "GET /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "OPTIONS /api/auth/sso/launch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59426 - "GET /api/auth/sso/launch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "GET /api/auth/sso/launch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59426 - "GET /api/auth/sso/launch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "GET /api/auth/sso/launch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59426 - "GET /api/auth/sso/launch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "GET /api/auth/sso/launch HTTP/1.1" 200 OK
+2026-01-27 16:16:10,649 [INFO] 1 change detected
+2026-01-27 16:19:19,514 [INFO] 1 change detected
+INFO:     127.0.0.1:59540 - "GET /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59540 - "GET /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59540 - "GET /api/moodle/grades HTTP/1.1" 200 OK
+2026-01-27 16:19:34,102 [INFO] Login attempt for user: student_g1_!
+2026-01-27 16:19:34,315 [WARNING] Login failed for user: student_g1_! - User not found
+2026-01-27 16:19:34,379 [ERROR] Failed to write auth log: duplicate key value violates unique constraint "auth_logs_pkey"
+DETAIL:  Key (id)=(451) already exists.
+
+INFO:     127.0.0.1:59542 - "POST /api/auth/login HTTP/1.1" 401 Unauthorized
+2026-01-27 16:19:40,615 [INFO] Login attempt for user: student_g1_1
+2026-01-27 16:19:40,636 [INFO] Password correct for student_g1_1, triggering 2FA.
+INFO:     127.0.0.1:59545 - "POST /api/auth/login HTTP/1.1" 200 OK
+2026-01-27 16:19:45,911 [INFO] 2FA Successful for user: student_g1_1
+2026-01-27 16:19:45,928 [ERROR] Failed to write auth log: duplicate key value violates unique constraint "auth_logs_pkey"
+DETAIL:  Key (id)=(452) already exists.
+
+INFO:     127.0.0.1:59548 - "POST /api/auth/verify-2fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59548 - "GET /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59548 - "GET /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59553 - "GET /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59548 - "GET /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59553 - "GET /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59548 - "OPTIONS /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59553 - "GET /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59548 - "OPTIONS /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59553 - "GET /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59548 - "OPTIONS /api/moodle/grades HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59553 - "GET /api/moodle/grades HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59548 - "OPTIONS /api/moodle/courses/101/contents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59553 - "GET /api/moodle/courses/101/contents HTTP/1.1" 200 OK
+2026-01-27 18:16:28,669 [INFO] 1 change detected
+2026-01-27 18:16:29,030 [INFO] 1 change detected
+INFO:     127.0.0.1:59812 - "OPTIONS /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59812 - "GET /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59812 - "OPTIONS /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59812 - "GET /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59812 - "OPTIONS /api/moodle/grades HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59812 - "GET /api/moodle/grades HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59814 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+2026-01-27 18:30:38,991 [INFO] Login attempt for user: student_g1_1
+2026-01-27 18:30:39,259 [INFO] Password correct for student_g1_1, triggering 2FA.
+INFO:     127.0.0.1:59814 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "OPTIONS /api/auth/verify-2fa HTTP/1.1" 200 OK
+2026-01-27 18:30:44,435 [INFO] 2FA Successful for user: student_g1_1
+INFO:     127.0.0.1:59817 - "POST /api/auth/verify-2fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "OPTIONS /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "GET /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "OPTIONS /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59821 - "OPTIONS /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "GET /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59821 - "GET /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "OPTIONS /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59821 - "OPTIONS /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "GET /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59821 - "GET /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "OPTIONS /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59821 - "GET /api/moodle/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "OPTIONS /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59821 - "GET /api/moodle/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59817 - "OPTIONS /api/moodle/grades HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59821 - "GET /api/moodle/grades HTTP/1.1" 200 OK
+2026-01-27 18:31:25,590 [INFO] Login attempt for user: student_g1_1
+2026-01-27 18:31:25,615 [INFO] Password correct for student_g1_1, triggering 2FA.
+INFO:     127.0.0.1:59830 - "POST /api/auth/login HTTP/1.1" 200 OK
+2026-01-27 18:31:29,304 [INFO] 2FA Successful for user: student_g1_1
+INFO:     127.0.0.1:59830 - "POST /api/auth/verify-2fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59830 - "GET /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59830 - "GET /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59836 - "GET /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59830 - "GET /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59836 - "GET /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+2026-01-27 18:35:51,061 [INFO] Login attempt for user: student_g1_1
+2026-01-27 18:35:51,124 [INFO] Password correct for student_g1_1, triggering 2FA.
+INFO:     127.0.0.1:59867 - "POST /api/auth/login HTTP/1.1" 200 OK
+2026-01-27 18:35:56,107 [INFO] 2FA Successful for user: student_g1_1
+INFO:     127.0.0.1:59867 - "POST /api/auth/verify-2fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59867 - "GET /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59867 - "GET /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59873 - "GET /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59867 - "GET /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59873 - "GET /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+2026-01-27 18:36:42,246 [INFO] Login attempt for user: student_g1_1
+2026-01-27 18:36:42,310 [INFO] Password correct for student_g1_1, triggering 2FA.
+INFO:     127.0.0.1:59879 - "POST /api/auth/login HTTP/1.1" 200 OK
+2026-01-27 18:36:45,562 [INFO] 2FA Successful for user: student_g1_1
+2026-01-27 18:36:45,579 [ERROR] Failed to write auth log: duplicate key value violates unique constraint "auth_logs_pkey"
+DETAIL:  Key (id)=(456) already exists.
+
+INFO:     127.0.0.1:59879 - "POST /api/auth/verify-2fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59879 - "GET /api/students/all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59879 - "GET /api/students/student_g1_1/data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59885 - "GET /api/classes/upcoming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59879 - "GET /api/students/student_g1_1/groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59885 - "GET /api/students/student_g1_1/assignments HTTP/1.1" 200 OK
+2026-01-27 18:37:33,086 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-01-27 18:37:33,321 [INFO] Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [46828]
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 18:42:54,762 [INFO] 1 change detected
+2026-01-27 19:05:23,005 [INFO] 1 change detected
+2026-01-27 19:07:12,880 [INFO] 2 changes detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 19:07:41,643 [INFO] 1 change detected
+2026-01-27 19:11:03,214 [INFO] 3 changes detected
+2026-01-27 19:17:37,929 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 19:17:38,478 [INFO] 3 changes detected
+2026-01-27 19:19:15,477 [INFO] 1 change detected
+2026-01-27 19:20:24,679 [INFO] 1 change detected
+2026-01-27 19:24:17,730 [INFO] 1 change detected
+2026-01-27 19:24:56,587 [INFO] 1 change detected
+2026-01-27 19:26:01,986 [INFO] 1 change detected
+2026-01-27 19:26:02,342 [INFO] 2 changes detected
+2026-01-27 19:26:02,698 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 19:26:03,214 [INFO] 3 changes detected
+2026-01-27 19:31:54,911 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 19:31:55,388 [INFO] 3 changes detected
+2026-01-27 19:32:12,519 [INFO] 1 change detected
+2026-01-27 19:32:34,188 [INFO] 1 change detected
+2026-01-27 19:32:34,550 [INFO] 1 change detected
+2026-01-27 19:33:33,743 [INFO] 1 change detected
+2026-01-27 20:02:55,570 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:02:56,042 [INFO] 3 changes detected
+2026-01-27 20:03:43,610 [INFO] 1 change detected
+2026-01-27 20:05:08,699 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:05:09,219 [INFO] 3 changes detected
+2026-01-27 20:05:33,087 [INFO] 2 changes detected
+2026-01-27 20:06:31,526 [INFO] 1 change detected
+2026-01-27 20:07:21,844 [INFO] 1 change detected
+2026-01-27 20:07:42,452 [INFO] 1 change detected
+2026-01-27 20:07:53,422 [INFO] 1 change detected
+2026-01-27 20:08:59,953 [INFO] 1 change detected
+2026-01-27 20:09:41,128 [INFO] 1 change detected
+2026-01-27 20:11:05,038 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:11:05,702 [INFO] 3 changes detected
+2026-01-27 20:11:27,571 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:11:28,040 [INFO] 3 changes detected
+2026-01-27 20:25:40,894 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:25:42,200 [INFO] 3 changes detected
+2026-01-27 20:58:09,130 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:58:09,640 [INFO] 3 changes detected
+2026-01-27 20:58:50,098 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:58:50,574 [INFO] 3 changes detected
+2026-01-27 20:59:24,241 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/oauth_snippet.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:59:52,504 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 20:59:53,129 [INFO] 3 changes detected
+2026-01-27 21:00:14,612 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/oauth_snippet.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 21:00:49,464 [INFO] 1 change detected
+2026-01-27 21:00:49,832 [INFO] 1 change detected
+2026-01-27 21:02:08,049 [INFO] 1 change detected
+2026-01-27 21:02:51,900 [INFO] 1 change detected
+2026-01-27 21:03:26,072 [INFO] 1 change detected
+2026-01-27 21:08:55,827 [INFO] 1 change detected
+WARNING:  WatchFiles detected changes in 'class/backend.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x00000001f3d5ec40 (most recent call first):
+  <no Python frame>
+2026-01-27 21:08:56,780 [INFO] 3 changes detected
+INFO:     Stopping reloader process [46779]
