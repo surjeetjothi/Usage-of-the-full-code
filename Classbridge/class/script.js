@@ -3154,6 +3154,7 @@ function getSidebarConfig(role) {
                     { label: 'sidebar_settings', onClick: () => alert('Settings Coming Soon'), route: '/student/settings' }
                 ]
             },
+            { label: 'sidebar_apply_leave', icon: 'timer_off', view: 'student-leave-view', onClick: () => { switchView('student-leave-view'); loadStudentLeaveView(); } },
             { label: 'sidebar_communication', icon: 'forum', view: 'student-communication-view' },
             { label: 'sidebar_lms', icon: 'school', view: 'lms-catalog-view', onClick: () => loadLMSCatalog() },
             { label: 'sidebar_ai_assistant', icon: 'smart_toy', onClick: () => toggleSidebarChat() }
@@ -3177,7 +3178,7 @@ function getSidebarConfig(role) {
                     { label: 'sidebar_take_attendance', view: 'attendance-take-view', route: '/teacher/attendance/take' },
                     { label: 'sidebar_attendance_sheet', view: 'attendance-sheet-view', route: '/teacher/attendance/sheet' },
                     { label: 'sidebar_monthly_report', view: 'attendance-report-view', route: '/teacher/attendance/report' },
-                    { label: 'sidebar_approve_leave', view: 'attendance-leave-approval-view', route: '/teacher/attendance/approve-leave' },
+                    { label: 'sidebar_approve_leave', view: 'attendance-leave-approval-view', route: '/teacher/attendance/approve-leave', onClick: () => { switchView('attendance-leave-approval-view'); loadTeacherLeaveApprovals(); } },
                     { label: 'sidebar_apply_leave', view: 'teacher-leave-apply-view', route: '/teacher/attendance/apply-leave' }
                 ]
             },
@@ -3623,6 +3624,7 @@ function renderParentControls() {
     // 5. Communication
     navList.appendChild(createNavItem('sidebar_communication', 'forum', () => {
         switchView('parent-communication-view');
+        loadParentMessages();
         const title = document.getElementById('page-title');
         if (title) {
             title.setAttribute('data-i18n', 'sidebar_communication');
@@ -3634,6 +3636,54 @@ function renderParentControls() {
         toggleSidebarChat();
     }));
     elements.userControls.appendChild(navList);
+}
+
+function loadParentMessages() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const container = document.querySelector('#parent-communication-view .list-group');
+        if (!container) return;
+
+        container.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-primary"></div></div>';
+
+        try {
+            const res = yield fetchAPI('/communication/messages');
+            if (res.ok) {
+                const messages = yield res.json();
+                container.innerHTML = '';
+
+                if (messages.length === 0) {
+                    container.innerHTML = '<div class="text-muted text-center p-4">No messages found.</div>';
+                    return;
+                }
+
+                messages.forEach(msg => {
+                    const date = new Date(msg.timestamp).toLocaleString();
+                    const sender = msg.sender_id === 'admin' ? 'Admin' : (msg.sender_id === 'teacher' ? 'Class Teacher' : msg.sender_id);
+                    // Determine border color based on subject keywords (simple logic)
+                    let borderClass = 'border-primary';
+                    if (msg.subject.toLowerCase().includes('absent')) borderClass = 'border-danger';
+                    if (msg.subject.toLowerCase().includes('late')) borderClass = 'border-warning';
+
+                    const html = `
+                    <a href="#" class="list-group-item list-group-item-action p-4 border-start border-4 ${borderClass} shadow-sm mb-3 rounded-end">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1 fw-bold">${msg.subject}</h5>
+                            <small class="text-muted">${date}</small>
+                        </div>
+                        <p class="mb-1">${msg.content}</p>
+                        <small class="text-muted">From: ${sender}</small>
+                    </a>
+                    `;
+                    container.innerHTML += html;
+                });
+            } else {
+                container.innerHTML = '<div class="text-danger p-4">Failed to load messages.</div>';
+            }
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div class="text-danger p-4">Error loading messages: ${e.message}</div>`;
+        }
+    });
 }
 function handleTeacherViewToggle(view) {
     const selectorDiv = document.getElementById('top-header-student-selector');
@@ -11573,15 +11623,15 @@ function loadAttendanceViewList() {
                             </div>
                         </div>
                         <div class="col-md-4 text-center">
-                            <div class="attendance-toggle">
-                                <input type="radio" name="att_view_${s.id}" id="att_view_p_${s.id}" value="Present" ${s.status === 'Present' || s.status === 'Not Marked' ? 'checked' : ''}>
-                                <label for="att_view_p_${s.id}">Present</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="att_view_${s.id}" id="att_view_p_${s.id}" value="Present" autocomplete="off" ${s.status === 'Present' || s.status === 'Not Marked' ? 'checked' : ''}>
+                                <label class="btn btn-outline-success btn-sm" for="att_view_p_${s.id}">Present</label>
 
-                                <input type="radio" name="att_view_${s.id}" id="att_view_a_${s.id}" value="Absent" ${s.status === 'Absent' ? 'checked' : ''}>
-                                <label for="att_view_a_${s.id}">Absent</label>
+                                <input type="radio" class="btn-check" name="att_view_${s.id}" id="att_view_a_${s.id}" value="Absent" autocomplete="off" ${s.status === 'Absent' ? 'checked' : ''}>
+                                <label class="btn btn-outline-danger btn-sm" for="att_view_a_${s.id}">Absent</label>
                                 
-                                <input type="radio" name="att_view_${s.id}" id="att_view_l_${s.id}" value="Late" ${s.status === 'Late' ? 'checked' : ''}>
-                                <label for="att_view_l_${s.id}">Late</label>
+                                <input type="radio" class="btn-check" name="att_view_${s.id}" id="att_view_l_${s.id}" value="Late" autocomplete="off" ${s.status === 'Late' ? 'checked' : ''}>
+                                <label class="btn btn-outline-warning btn-sm" for="att_view_l_${s.id}">Late</label>
                             </div>
                         </div>
                         <div class="col-md-4 pe-4 text-end">
@@ -12041,5 +12091,176 @@ async function handleTeacherLeaveSubmit(event) {
             btn.disabled = false;
             btn.innerText = originalText;
         }
+    }
+}
+
+/* --- LEAVE MANAGEMENT FUNCTIONS --- */
+
+function loadStudentLeaveView() {
+    const listContainer = document.getElementById('student-leave-history-list');
+    if (!listContainer) return;
+
+    // Setup Form Submit
+    const form = document.getElementById('student-leave-form');
+    // Remove old listeners to avoid duplicates
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+
+    newForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = document.getElementById('leave-type').value;
+        const start = document.getElementById('leave-start').value;
+        const end = document.getElementById('leave-end').value;
+        const reason = document.getElementById('leave-reason').value;
+
+        try {
+            const res = await fetchAPI('/api/leave/apply', {
+                method: 'POST',
+                body: JSON.stringify({
+                    user_id: appState.userId,
+                    type, start_date: start, end_date: end, reason
+                })
+            });
+
+            if (res.ok) {
+                alert('Leave application submitted successfully!');
+                newForm.reset();
+                loadMyLeaveHistory(); // Refresh list
+            } else {
+                try {
+                    const errData = await res.json();
+                    alert('Failed to submit application: ' + (errData.detail || errData.message || "Unknown error"));
+                } catch (e) {
+                    alert('Failed to submit application. Status: ' + res.status);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error submitting application.');
+        }
+    });
+
+    loadMyLeaveHistory();
+}
+
+async function loadMyLeaveHistory() {
+    const listContainer = document.getElementById('student-leave-history-list');
+    listContainer.innerHTML = '<div class="text-center p-3">Loading...</div>';
+
+    try {
+        const res = await fetchAPI(`/api/leave/my-history?user_id=${appState.userId}`);
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Failed to load: ${res.status} ${errText}`);
+        }
+        const history = await res.json();
+
+        if (history.length === 0) {
+            listContainer.innerHTML = '<div class="text-center p-4 text-muted">No leave history found.</div>';
+            return;
+        }
+
+        listContainer.innerHTML = '';
+        history.forEach(req => {
+            let badgeClass = 'bg-warning';
+            if (req.status === 'Approved') badgeClass = 'bg-success';
+            if (req.status === 'Denied') badgeClass = 'bg-danger';
+
+            const html = `
+                <div class="list-group-item p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge ${badgeClass}">${req.status}</span>
+                        <small class="text-muted">${new Date(req.created_at).toLocaleDateString()}</small>
+                    </div>
+                    <h6 class="mb-1">${req.type}</h6>
+                    <small class="text-muted d-block">${req.start_date} to ${req.end_date}</small>
+                    <p class="mb-0 small mt-1 text-secondary">"${req.reason}"</p>
+                </div>
+            `;
+            listContainer.innerHTML += html;
+        });
+
+    } catch (e) {
+        listContainer.innerHTML = `<div class="text-danger p-3">Error loading history: ${e.message}</div>`;
+    }
+}
+
+async function loadTeacherLeaveApprovals() {
+    const container = document.querySelector('#attendance-leave-approval-view .list-group');
+    if (!container) return;
+
+    container.innerHTML = '<div class="text-center p-5">Loading requests...</div>';
+
+    try {
+        const res = await fetchAPI('/api/leave/pending');
+        if (!res.ok) throw new Error('Fetch failed');
+        const requests = await res.json();
+
+        if (requests.length === 0) {
+            container.innerHTML = '<div class="text-center p-5 text-muted">No pending leave requests.</div>';
+            const counter = document.querySelector('#attendance-leave-approval-view .nav-link.active');
+            if (counter) counter.textContent = 'Pending (0)';
+            return;
+        }
+
+        const counter = document.querySelector('#attendance-leave-approval-view .nav-link.active');
+        if (counter) counter.textContent = `Pending (${requests.length})`;
+
+        container.innerHTML = '';
+        requests.forEach(req => {
+            const start = new Date(req.start_date);
+            const end = new Date(req.end_date);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+            const html = `
+                <li class="list-group-item p-4 border-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-md bg-soft-warning text-warning rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                                style="width: 50px; height: 50px; background-color: #fff3cd;">
+                                ${req.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark">${req.name} <span
+                                        class="badge bg-light text-muted border fw-normal ms-2">Grade ${req.grade}</span>
+                                </h6>
+                                <div class="text-muted small"><i
+                                        class="material-icons align-middle fs-6 me-1 text-secondary">event</i> 
+                                    ${req.start_date} - ${req.end_date} (${diffDays} Days) • <span class="fw-medium text-dark">${req.type}</span></div>
+                                <p class="mb-0 mt-2 text-muted small fst-italic">"${req.reason}"</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button onclick="updateLeaveStatus(${req.id}, 'Denied')" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-medium">Deny</button>
+                            <button onclick="updateLeaveStatus(${req.id}, 'Approved')" class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-sm">Approve Request</button>
+                        </div>
+                    </div>
+                </li>
+            `;
+            container.innerHTML += html;
+        });
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<div class="text-danger">Error loading requests.</div>';
+    }
+}
+
+async function updateLeaveStatus(id, status) {
+    if (!confirm(`Are you sure you want to mark this request as ${status}?`)) return;
+
+    try {
+        const res = await fetchAPI(`/api/leave/${id}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status, reviewed_by: appState.userId })
+        });
+        if (res.ok) {
+            loadTeacherLeaveApprovals();
+        } else {
+            alert('Action failed.');
+        }
+    } catch (e) {
+        alert('Network error.');
     }
 }

@@ -8,16 +8,18 @@ def check():
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
         
-        cursor.execute("SELECT id, name, grade, role FROM students WHERE grade=1")
+        cursor.execute("SELECT id, name, role FROM students")
         rows = cursor.fetchall()
-        print("Grade 1 Students:")
+        print(f"Total Users: {len(rows)}")
+        found = False
         for r in rows:
             print(r)
-            
-        cursor.execute("SELECT id, name FROM students WHERE id='parent_g1'")
-        p = cursor.fetchone()
-        print(f"\nParent g1: {p}")
+            if r[0] == 'S001':
+                found = True
         
+        if not found:
+            print("\nWARNING: S001 NOT FOUND!")
+            
     except Exception as e:
         print(e)
     finally:

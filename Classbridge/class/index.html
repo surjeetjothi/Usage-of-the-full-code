@@ -5935,6 +5935,64 @@
             </div>
         </div>
 
+        <!-- STUDENT LEAVE VIEW -->
+        <div id="student-leave-view" class="view container-fluid p-4">
+            <h2 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                <span class="material-icons text-primary fs-2">timer_off</span> Requests
+            </h2>
+            <div class="row g-4">
+                <div class="col-md-5">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-primary text-white fw-bold py-3 rounded-top-4">Apply for Leave</div>
+                        <div class="card-body p-4">
+                            <form id="student-leave-form">
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Leave Type</label>
+                                    <select class="form-select" id="leave-type" required>
+                                        <option value="Sick Leave">Sick Leave</option>
+                                        <option value="Casual Leave">Casual Leave</option>
+                                        <option value="Family Function">Family Function</option>
+                                        <option value="Emergency">Emergency</option>
+                                    </select>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">Start Date</label>
+                                        <input type="date" class="form-control" id="leave-start" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">End Date</label>
+                                        <input type="date" class="form-control" id="leave-end" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Reason</label>
+                                    <textarea class="form-control" id="leave-reason" rows="3" required
+                                        placeholder="Describe why you need leave..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">Submit
+                                    Application</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white fw-bold py-3 border-bottom">My Leave History</div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="student-leave-history-list">
+                                <!-- Dynamic Content -->
+                                <div class="text-center p-5 text-muted">
+                                    <span class="material-icons fs-1 text-light">history</span>
+                                    <p class="mt-2">Loading history...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="teacher-leave-apply-view" class="view container-fluid p-4">
             <h3 class="fw-bold mb-4 text-dark">My Leave Application</h3>
             <div class="row">

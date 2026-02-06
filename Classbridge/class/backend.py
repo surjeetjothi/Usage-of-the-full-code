@@ -6798,31 +6798,38 @@ async def take_bulk_attendance(req: BulkAttendanceRequest, x_user_id: str = Head
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (record.student_id, req.date, record.status, record.remarks, x_user_id, created_at))
 
-            # Notify Parents if student is marked Present (User Request)
-            if record.status == 'Present':
+            # Notify Parents on Attendance Update
+            print(f"DEBUG: Processing record for {record.student_id}, Status: {record.status}")
+            if record.status in ['Present', 'Absent', 'Late']:
                 # Find guardians for this student
-                # Note: In our schema, guardian 'email' field is used to map to the Parent User ID (e.g. 'parent_demo')
                 guardians = c.execute("SELECT email, name FROM guardians WHERE student_id = ?", (record.student_id,)).fetchall()
-                
+                print(f"DEBUG: Found {len(guardians)} guardians for {record.student_id}")
+
                 # Fetch student name for the message
                 student_row = c.execute("SELECT name FROM students WHERE id = ?", (record.student_id,)).fetchone()
                 student_name = student_row['name'] if student_row else "Student"
 
                 for g in guardians:
                     parent_user_id = g['email']
+                    print(f"DEBUG: Checking parent user {parent_user_id}")
                     
                     # Verify parent exists as a user to receive messages
                     parent_user = c.execute("SELECT id FROM students WHERE id = ? AND role = 'Parent'", (parent_user_id,)).fetchone()
                     
                     if parent_user:
-                        subject = f"Attendance: {student_name} is Present"
-                        content = f"Dear {g['name']}, your child {student_name} has been marked PRESENT for today ({req.date})."
+                        print(f"DEBUG: Parent user {parent_user_id} found. Sending message.")
+                        subject = f"Attendance: {student_name} is {record.status}"
+                        content = f"Dear {g['name']}, your child {student_name} has been marked {record.status.upper()} for today ({req.date})."
+                        if record.remarks:
+                             content += f" Remarks: {record.remarks}"
                         
                         # Insert Notification into Messages
                         c.execute("""
                            INSERT INTO messages (sender_id, receiver_id, subject, content, timestamp, is_read)
                            VALUES (?, ?, ?, ?, ?, FALSE)
                         """, (x_user_id if x_user_id else 'admin', parent_user_id, subject, content, created_at))
+                    else:
+                        print(f"DEBUG: Parent user {parent_user_id} NOT found in students table or not role='Parent'")
             
         conn.commit()
         return {"success": True, "count": len(req.records)}
@@ -6888,41 +6895,8 @@ class LeaveRequestCreate(BaseModel):
     end_date: str
     reason: str
 
-@app.post("/api/leave/apply")
-async def apply_leave(req: LeaveRequestCreate):
-    conn = get_db_connection()
-    c = conn.cursor()
-    try:
-        # Insert Leave Request
-        c.execute("""
-            INSERT INTO leave_requests (user_id, type, start_date, end_date, reason, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (req.user_id, req.type, req.start_date, req.end_date, req.reason, datetime.now().isoformat()))
+# Duplicate apply_leave removed. Using the implementation at the end of the file.
 
-        # Check if user is a teacher and notify principal
-        user = c.execute("SELECT name, role, school_id FROM students WHERE id = ?", (req.user_id,)).fetchone()
-
-        if user and user['role'] == 'Teacher':
-             # Find Principal (Tenant_Admin)
-             principal = c.execute("SELECT id FROM students WHERE role = 'Tenant_Admin' AND school_id = ?", (user['school_id'],)).fetchone()
-
-             if principal:
-                 subject = f"Leave Request: {user['name']}"
-                 content = f"Teacher {user['name']} has applied for {req.type} leave from {req.start_date} to {req.end_date}. Reason: {req.reason}"
-                 timestamp = datetime.now().isoformat()
-
-                 c.execute("""
-                    INSERT INTO messages (sender_id, receiver_id, subject, content, timestamp, is_read)
-                    VALUES (?, ?, ?, ?, ?, FALSE)
-                 """, (req.user_id, principal['id'], subject, content, timestamp))
-
-        conn.commit()
-        return {"success": True, "message": "Leave request submitted."}
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
 
 @app.get("/api/leave/student/pending")
 async def get_pending_student_leaves(x_school_id: int = Header(1, alias="X-School-Id")):
@@ -7013,3 +6987,115 @@ if __name__ == "__main__":
     import uvicorn
     # Use the current file name 'backend' as the module
     uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
+
+# --- LEAVE MANAGEMENT ENDPOINTS (ADDED DYNAMICALLY) ---
+
+class LeaveApplication(BaseModel):
+    user_id: str
+    type: str 
+    start_date: str
+    end_date: str
+    reason: str
+
+class LeaveStatusUpdate(BaseModel):
+    status: str 
+    reviewed_by: str
+
+@app.post("/api/leave/apply")
+async def apply_leave(request: LeaveApplication):
+    print(f"DEBUG LEAVE APPLY: {request.dict()}")
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # 1. Insert Request
+        cursor.execute("""
+            INSERT INTO leave_requests (user_id, type, start_date, end_date, reason, status, created_at)
+            VALUES (?, ?, ?, ?, ?, 'Pending', ?)
+        """, (request.user_id, request.type, request.start_date, request.end_date, request.reason, datetime.now().isoformat()))
+        
+        # 2. Notify Principal (Tenant_Admin) or Teacher
+        try:
+            # Assuming school_id=1 for now
+            school_id = 1 
+            # Notify 'teacher' and 'admin' for demo purposes
+            cursor.execute("SELECT id FROM students WHERE role IN ('Teacher', 'Tenant_Admin') AND school_id = ?", (school_id,))
+            admins = cursor.fetchall()
+            
+            msg_content = f"Leave Request from {request.user_id}: {request.reason} ({request.start_date} to {request.end_date})"
+            ts = datetime.now().isoformat()
+            
+            for admin in admins:
+                aid = admin[0]
+                cursor.execute("""
+                    INSERT INTO messages (sender_id, receiver_id, subject, content, timestamp, is_read)
+                    VALUES (?, ?, 'New Leave Request', ?, ?, FALSE)
+                """, (request.user_id, aid, msg_content, ts))
+        except Exception as e:
+            print(f"Notification Error: {e}")
+
+        conn.commit()
+        return {"message": "Leave application submitted successfully."}
+    except Exception as e:
+        print(f"Apply Leave Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/leave/pending")
+async def get_pending_leaves(school_id: int = 1):
+    conn = get_db_connection()
+    try:
+        # Join with students to get name and grade
+        query = """
+            SELECT l.*, s.name, s.grade 
+            FROM leave_requests l
+            JOIN students s ON l.user_id = s.id
+            WHERE l.status = 'Pending'
+        """
+        rows = conn.execute(query).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+        
+@app.get("/api/leave/my-history")
+async def get_my_leave_history(user_id: str):
+    conn = get_db_connection()
+    try:
+        rows = conn.execute("SELECT * FROM leave_requests WHERE user_id = ? ORDER BY created_at DESC", (user_id,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+@app.put("/api/leave/{leave_id}/status")
+async def update_leave_status(leave_id: int, update: LeaveStatusUpdate):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # Update Status
+        cursor.execute("UPDATE leave_requests SET status = ?, reviewed_by = ? WHERE id = ?", 
+                       (update.status, update.reviewed_by, leave_id))
+        
+        conn.commit()
+        
+        # Notify Student
+        cursor.execute("SELECT user_id, type FROM leave_requests WHERE id = ?", (leave_id,))
+        req = cursor.fetchone()
+        if req:
+            student_id = req[0]
+            leave_type = req[1]
+            status_msg = f"Your {leave_type} request has been {update.status.upper()}."
+            
+            cursor.execute("""
+                INSERT INTO messages (sender_id, receiver_id, subject, content, timestamp, is_read)
+                VALUES (?, ?, 'Leave Request Update', ?, ?, FALSE)
+            """, (update.reviewed_by, student_id, status_msg, datetime.now().isoformat()))
+            conn.commit()
+
+        return {"message": f"Leave request {update.status}"}
+    except Exception as e:
+         print(f"Update Leave Error: {e}")
+         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
