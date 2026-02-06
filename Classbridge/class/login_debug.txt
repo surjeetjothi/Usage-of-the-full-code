@@ -1,0 +1,5 @@
+Login Failed: Role mismatch for admin. DB=Admin, Req=Student
+Login Failed: User adminadmin not found
+Login Failed: User adminadminadmin not found
+Login Failed: Role mismatch for teacher. DB=Teacher, Req=Student
+Login Failed: Role mismatch for teacher. DB=Teacher, Req=Student
