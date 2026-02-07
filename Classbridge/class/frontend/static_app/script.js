@@ -31,7 +31,7 @@ const isLocal = (
     window.location.hostname.startsWith('10.')
 );
 const LOCAL_API_BASE = `http://${window.location.hostname === 'localhost' || !window.location.hostname ? '127.0.0.1' : window.location.hostname}:8000/api`;
-const PROD_API_DEFAULT = 'https://nexuxbackend.onrender.com/api';
+const PROD_API_DEFAULT = 'https://classbridge-backend-bqj3.onrender.com/api';
 // Allow override via window.__API_BASE_URL__ (optional)
 const API_BASE_URL = isLocal
     ? LOCAL_API_BASE
