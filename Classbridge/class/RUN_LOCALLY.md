@@ -69,7 +69,7 @@ If you just want to test the frontend (but API won't work):
 
 Just use your production server:
 ```
-https://backend1-bzh1.onrender.com
+https://classbridge-backend-bqj3.onrender.com
 ```
 
 This is already set up and working (once you configure Google OAuth in Google Cloud Console).

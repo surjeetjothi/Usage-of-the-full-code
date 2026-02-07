@@ -20,15 +20,15 @@ const API_BASE_URL = (window.location.hostname === '127.0.0.1' || window.locatio
 - This works for local development
 
 ### On Production Server (Render):
-- URL: `https://backend1-bzh1.onrender.com`
+- URL: `https://classbridge-backend-bqj3.onrender.com`
 - API calls go to: `/api` (relative path)
-- This automatically becomes: `https://backend1-bzh1.onrender.com/api`
+- This automatically becomes: `https://classbridge-backend-bqj3.onrender.com/api`
 - **No configuration needed - it just works!**
 
 ## Why This Works:
 
 The code uses a **relative path** (`/api`) when not on localhost. This means:
-- When accessed from `https://backend1-bzh1.onrender.com`, `/api` becomes `https://backend1-bzh1.onrender.com/api`
+- When accessed from `https://classbridge-backend-bqj3.onrender.com`, `/api` becomes `https://classbridge-backend-bqj3.onrender.com/api`
 - When accessed from `https://yourdomain.com`, `/api` becomes `https://yourdomain.com/api`
 - It automatically adapts to whatever domain the app is running on
 
