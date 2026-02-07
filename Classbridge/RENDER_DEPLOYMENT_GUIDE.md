@@ -151,7 +151,7 @@ If your backend URL changed, update the frontend:
 
 Find:
 ```javascript
-const PROD_API_DEFAULT = 'https://nexuxbackend.onrender.com/api';
+const PROD_API_DEFAULT = 'https://classbridge-backend-bqj3.onrender.com/api';
 ```
 
 Update to:

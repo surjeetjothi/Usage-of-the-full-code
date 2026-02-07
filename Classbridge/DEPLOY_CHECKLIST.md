@@ -126,13 +126,13 @@ Expected response:
 ### Step 8: Update Frontend (If Needed)
 ```
 If your backend URL is different from:
-https://nexuxbackend.onrender.com
+https://classbridge-backend-bqj3.onrender.com
 
 Then update frontend:
 
 1. Open: frontend/static_app/script.js
 2. Find line ~34:
-   const PROD_API_DEFAULT = 'https://nexuxbackend.onrender.com/api';
+   const PROD_API_DEFAULT = 'https://classbridge-backend-bqj3.onrender.com/api';
 3. Change to:
    const PROD_API_DEFAULT = 'https://classbridge-backend.onrender.com/api';
 4. Save and redeploy frontend on Vercel

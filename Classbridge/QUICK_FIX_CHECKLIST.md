@@ -33,7 +33,7 @@ After deployment completes (2-5 minutes):
 
 ```bash
 # Test from command line
-curl https://nexuxbackend.onrender.com/api/health
+curl https://classbridge-backend-bqj3.onrender.com/api/health
 
 # Or run the test script
 python3 test_connection.py
@@ -45,7 +45,7 @@ python3 test_connection.py
 2. Press F12 (Developer Tools)
 3. Go to Console tab
 4. Look for:
-   - ✅ "ClassBridge API Base URL: https://nexuxbackend.onrender.com/api"
+   - ✅ "ClassBridge API Base URL: https://classbridge-backend-bqj3.onrender.com/api"
    - ❌ CORS errors (should be gone after fix)
    - ❌ Network errors (check backend is running)
 
@@ -87,7 +87,7 @@ python3 test_connection.py
 **Cause:** Backend not running or wrong URL  
 **Fix:**
 - Check Render dashboard - service should be "Active"
-- Verify URL is exactly: `https://nexuxbackend.onrender.com`
+- Verify URL is exactly: `https://classbridge-backend-bqj3.onrender.com`
 - Check Render logs for errors
 
 ### Issue: "Database connection error"
@@ -110,10 +110,10 @@ python3 test_connection.py
 
 ```bash
 # Backend health check
-https://nexuxbackend.onrender.com/api/health
+https://classbridge-backend-bqj3.onrender.com/api/health
 
 # Backend root (should show "API is Running")
-https://nexuxbackend.onrender.com/
+https://classbridge-backend-bqj3.onrender.com/
 
 # Frontend
 https://ed-tech-portal.vercel.app/

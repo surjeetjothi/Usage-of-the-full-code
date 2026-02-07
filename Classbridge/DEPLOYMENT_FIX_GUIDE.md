@@ -1,7 +1,7 @@
 # Frontend-Backend Connection Fix Guide
 
 ## Problem Summary
-Your frontend (deployed on Vercel at https://ed-tech-portal.vercel.app) is not connecting to your backend (deployed on Render at https://nexuxbackend.onrender.com).
+Your frontend (deployed on Vercel at https://ed-tech-portal.vercel.app) is not connecting to your backend (deployed on Render at https://classbridge-backend-bqj3.onrender.com).
 
 ## Changes Made
 
@@ -13,7 +13,7 @@ Your frontend (deployed on Vercel at https://ed-tech-portal.vercel.app) is not c
 
 ### 2. Health Check Endpoint
 ✅ **Added `/api/health` endpoint**
-- Test if backend is running: `https://nexuxbackend.onrender.com/api/health`
+- Test if backend is running: `https://classbridge-backend-bqj3.onrender.com/api/health`
 - Returns server status, database connection, and configuration info
 
 ## Required Actions
@@ -68,14 +68,14 @@ git push origin main
 
 1. **Test health endpoint:**
    ```
-   https://nexuxbackend.onrender.com/api/health
+   https://classbridge-backend-bqj3.onrender.com/api/health
    ```
    Should return JSON with status "healthy"
 
 2. **Test from frontend:**
    - Open https://ed-tech-portal.vercel.app
    - Open browser console (F12)
-   - Look for API requests to `nexuxbackend.onrender.com`
+   - Look for API requests to `classbridge-backend-bqj3.onrender.com`
    - Check for CORS errors (should be gone now)
 
 3. **Test login:**
@@ -88,7 +88,7 @@ git push origin main
 **Cause:** Backend not running or wrong URL
 **Solution:** 
 - Verify backend is deployed and running on Render
-- Check the URL is exactly: `https://nexuxbackend.onrender.com`
+- Check the URL is exactly: `https://classbridge-backend-bqj3.onrender.com`
 
 ### Issue 2: CORS Error
 **Cause:** CORS not configured for your domain
@@ -134,14 +134,14 @@ Your `vercel.json` is configured correctly for SPA routing. No changes needed th
 
 ```bash
 # Test backend health
-curl https://nexuxbackend.onrender.com/api/health
+curl https://classbridge-backend-bqj3.onrender.com/api/health
 
 # Test CORS from command line
 curl -H "Origin: https://ed-tech-portal.vercel.app" \
      -H "Access-Control-Request-Method: POST" \
      -H "Access-Control-Request-Headers: Content-Type" \
      -X OPTIONS \
-     https://nexuxbackend.onrender.com/api/auth/login
+     https://classbridge-backend-bqj3.onrender.com/api/auth/login
 
 # Should return CORS headers in response
 ```

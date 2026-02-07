@@ -9,9 +9,9 @@ If you've already added the URL but it's still not working, check these:
 
 **Check "Authorized JavaScript origins":**
 - Must have EXACTLY: `https://classbridge-backend-bqj3.onrender.com`
-- ❌ NOT: `http://backend1-bzh1.onrender.com` (wrong protocol)
+- ❌ NOT: `http://classbridge-backend-bqj3.onrender.com` (wrong protocol)
 - ❌ NOT: `https://classbridge-backend-bqj3.onrender.com/` (trailing slash)
-- ❌ NOT: `backend1-bzh1.onrender.com` (missing protocol)
+- ❌ NOT: `classbridge-backend-bqj3.onrender.com` (missing protocol)
 - ✅ YES: `https://classbridge-backend-bqj3.onrender.com` (correct!)
 
 ### 2. Check Both Sections
@@ -36,8 +36,8 @@ Make sure you added it to **BOTH**:
 ### 6. Verify You're Accessing the Correct URL
 Make sure you're visiting:
 - ✅ `https://classbridge-backend-bqj3.onrender.com`
-- ❌ NOT `http://backend1-bzh1.onrender.com` (wrong protocol)
-- ❌ NOT `www.backend1-bzh1.onrender.com` (different subdomain)
+- ❌ NOT `http://classbridge-backend-bqj3.onrender.com` (wrong protocol)
+- ❌ NOT `www.classbridge-backend-bqj3.onrender.com` (different subdomain)
 
 ### 7. Check Browser Console for Exact Error
 1. Open browser Developer Tools (F12)

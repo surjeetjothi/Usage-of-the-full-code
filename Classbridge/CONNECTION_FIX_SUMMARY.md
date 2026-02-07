@@ -7,7 +7,7 @@
 - Frontend is accessible and loading correctly
 
 ### ❌ Issues Found
-- **Backend (Render)**: https://nexuxbackend.onrender.com - **TIMEOUT/SLEEPING**
+- **Backend (Render)**: https://classbridge-backend-bqj3.onrender.com - **TIMEOUT/SLEEPING**
 - Backend is not responding to requests
 - Connection tests are timing out
 
@@ -127,7 +127,7 @@ Render will automatically detect the push and redeploy (if connected to GitHub).
 If service is sleeping (free tier):
 ```bash
 # This will wake it up (takes 30-60 seconds)
-curl https://nexuxbackend.onrender.com/api/health
+curl https://classbridge-backend-bqj3.onrender.com/api/health
 ```
 
 Or just visit the URL in your browser.
@@ -136,7 +136,7 @@ Or just visit the URL in your browser.
 
 **Test 1: Health Check**
 ```bash
-curl https://nexuxbackend.onrender.com/api/health
+curl https://classbridge-backend-bqj3.onrender.com/api/health
 ```
 
 Expected response:
@@ -206,7 +206,7 @@ Expected: All tests should pass ✅
 
 # Verify CORS headers
 curl -H "Origin: https://ed-tech-portal.vercel.app" \
-     -I https://nexuxbackend.onrender.com/api/health
+     -I https://classbridge-backend-bqj3.onrender.com/api/health
 ```
 
 ### Problem: Database connection errors
@@ -237,7 +237,7 @@ curl -H "Origin: https://ed-tech-portal.vercel.app" \
 
 You'll know it's working when:
 
-1. ✅ `curl https://nexuxbackend.onrender.com/api/health` returns JSON
+1. ✅ `curl https://classbridge-backend-bqj3.onrender.com/api/health` returns JSON
 2. ✅ Frontend console shows no CORS errors
 3. ✅ Login functionality works
 4. ✅ Test script shows all tests passing
@@ -256,7 +256,7 @@ You'll know it's working when:
 - **Render Documentation:** https://render.com/docs
 - **Render Status:** https://status.render.com
 - **Test Script:** `python3 test_connection.py`
-- **Health Check:** https://nexuxbackend.onrender.com/api/health
+- **Health Check:** https://classbridge-backend-bqj3.onrender.com/api/health
 
 ---
 

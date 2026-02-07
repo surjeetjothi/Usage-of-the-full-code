@@ -52,9 +52,9 @@ https://classbridge-backend-bqj3.onrender.com    ← ADD THIS
 ```
 
 ## Common Mistakes to Avoid:
-❌ Don't add: `http://backend1-bzh1.onrender.com` (wrong protocol)
+❌ Don't add: `http://classbridge-backend-bqj3.onrender.com` (wrong protocol)
 ❌ Don't add: `https://classbridge-backend-bqj3.onrender.com/` (trailing slash)
-❌ Don't add: `backend1-bzh1.onrender.com` (missing protocol)
+❌ Don't add: `classbridge-backend-bqj3.onrender.com` (missing protocol)
 ✅ Do add: `https://classbridge-backend-bqj3.onrender.com` (correct!)
 
 ## Still Not Working?

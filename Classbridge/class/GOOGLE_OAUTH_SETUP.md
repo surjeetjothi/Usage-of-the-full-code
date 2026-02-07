@@ -19,13 +19,13 @@ In the **Authorized JavaScript origins** section, add:
 - `http://localhost:8000` (should already be there)
 - `http://127.0.0.1:8000` (should already be there)
 - `https://classbridge-backend-bqj3.onrender.com` ⬅️ **ADD THIS**
-- `https://www.backend1-bzh1.onrender.com` (if you use www subdomain)
+- `https://www.classbridge-backend-bqj3.onrender.com` (if you use www subdomain)
 
 ### Step 4: Add Authorized Redirect URIs
 In the **Authorized redirect URIs** section, add:
 - `http://localhost:8000` (should already be there)
 - `https://classbridge-backend-bqj3.onrender.com` ⬅️ **ADD THIS**
-- `https://www.backend1-bzh1.onrender.com` (if you use www subdomain)
+- `https://www.classbridge-backend-bqj3.onrender.com` (if you use www subdomain)
 
 ### Step 5: Save Changes
 1. Click **Save** at the bottom of the page
