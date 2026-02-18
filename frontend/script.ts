@@ -120,7 +120,7 @@ function restoreAuthState() {
         appState.isLoggedIn = true;
         appState.role = session.role;
         appState.userId = session.user_id;
-        appState.name = session.name;
+        appState.name = session.name || session.user_id || null;
         appState.schoolId = session.school_id;
         appState.schoolName = session.school_name;
         appState.isSuperAdmin = session.is_super_admin;
@@ -3219,7 +3219,7 @@ async function handleLogin(e) {
             appState.schoolId = data.school_id;
             appState.schoolName = data.school_name;
             appState.isSuperAdmin = data.is_super_admin;
-            appState.name = data.name;
+            appState.name = data.name || data.user_id;
             appState.roles = data.roles || [];
             appState.permissions = data.permissions || [];
             applyRoleTheme();
@@ -3312,6 +3312,7 @@ async function handle2FASubmit(e) {
             appState.schoolId = data.school_id;
             appState.schoolName = data.school_name;
             appState.isSuperAdmin = data.is_super_admin;
+            appState.name = data.name || data.user_id;
 
             // Fix for Parent: Use Related Student ID as Active Student
             if ((appState.role === 'Parent' || appState.role === 'Parent_Guardian') && data.related_student_id) {
@@ -3378,6 +3379,7 @@ async function handleCredentialResponse(response) {
             appState.schoolId = data.school_id;
             appState.schoolName = data.school_name;
             appState.isSuperAdmin = data.is_super_admin;
+            appState.name = data.name || data.user_id;
             // Fix for Parent: Use Related Student ID as Active Student
             if ((appState.role === 'Parent' || appState.role === 'Parent_Guardian') && data.related_student_id) {
                 appState.activeStudentId = data.related_student_id;
@@ -3455,6 +3457,7 @@ async function handleSocialLogin(provider) {
                     appState.schoolId = data.school_id;
                     appState.schoolName = data.school_name;
                     appState.isSuperAdmin = data.is_super_admin;
+                    appState.name = data.name || data.user_id;
                     // Fix for Parent: Use Related Student ID as Active Student
                     if ((appState.role === 'Parent' || appState.role === 'Parent_Guardian') && data.related_student_id) {
                         appState.activeStudentId = data.related_student_id;
@@ -3510,6 +3513,7 @@ async function handleSocialLogin(provider) {
             appState.schoolId = data.school_id;
             appState.schoolName = data.school_name;
             appState.isSuperAdmin = data.is_super_admin;
+            appState.name = data.name || data.user_id;
             appState.activeStudentId = (data.role === 'Parent' || data.role === 'Student') ? data.user_id : null;
             elements.loginMessage.textContent = `Success! Welcome, ${data.user_id}`;
             if (appState.schoolName && appState.schoolName !== 'Independent') {

@@ -130,7 +130,7 @@ function restoreAuthState() {
         appState.isLoggedIn = true;
         appState.role = session.role;
         appState.userId = session.user_id;
-        appState.name = session.name;
+        appState.name = session.name || session.user_id || null;
         appState.schoolId = session.school_id;
         appState.schoolName = session.school_name;
         appState.isSuperAdmin = session.is_super_admin;
@@ -2005,25 +2005,63 @@ function updateTranslations() {
             locale = 'en-US';
         calDate.textContent = now.toLocaleDateString(locale, opts);
     }
-    // Update Dropdown Value if called programmatically
-    const toggle = document.getElementById('lang-toggle');
-    if (toggle)
-        toggle.value = currentLanguage;
+    // Update global selector value if called programmatically
+    const globalToggle = document.getElementById('global-lang-toggle');
+    if (globalToggle)
+        globalToggle.value = currentLanguage;
+}
 
-    // Update Landing Page Dropdown
-    const langText = document.getElementById('current-lang-text');
-    const langFlag = document.getElementById('current-lang-flag');
-    if (langText && langFlag) {
-        if (currentLanguage === 'en') { langText.innerText = 'English'; langFlag.src = 'https://flagcdn.com/w40/us.png'; }
-        else if (currentLanguage === 'es') { langText.innerText = 'Español'; langFlag.src = 'https://flagcdn.com/w40/es.png'; }
-        else if (currentLanguage === 'ar') { langText.innerText = 'العربية'; langFlag.src = 'https://flagcdn.com/w40/sa.png'; }
-        else if (currentLanguage === 'hi') { langText.innerText = 'हिन्दी'; langFlag.src = 'https://flagcdn.com/w40/in.png'; }
-        else if (currentLanguage === 'ja') { langText.innerText = '日本語'; langFlag.src = 'https://flagcdn.com/w40/jp.png'; }
+function updateGlobalLanguageControlVisibility(currentViewId = null) {
+    const host = document.getElementById('global-language-control');
+    if (!host)
+        return;
+    const activeView = currentViewId || (document.querySelector('.view.active') || {}).id || '';
+    const hiddenViews = ['landing-view', 'login-view', 'register-view', 'two-factor-view'];
+    const shouldHide = !appState.isLoggedIn || hiddenViews.includes(activeView);
+    host.style.display = shouldHide ? 'none' : 'flex';
+}
+
+function ensureGlobalLanguageControl() {
+    if (document.getElementById('global-language-control'))
+        return;
+    const host = document.createElement('div');
+    host.id = 'global-language-control';
+    host.style.position = 'fixed';
+    host.style.top = '16px';
+    host.style.right = '20px';
+    host.style.zIndex = '99999';
+    host.style.background = 'rgba(255,255,255,0.95)';
+    host.style.border = '1px solid #e5e7eb';
+    host.style.borderRadius = '12px';
+    host.style.padding = '6px 10px';
+    host.style.boxShadow = '0 6px 20px rgba(15,23,42,0.12)';
+    host.style.alignItems = 'center';
+    host.style.gap = '8px';
+    host.innerHTML = `
+        <span class="material-icons" style="font-size:18px;color:#6b7280;">language</span>
+        <select id="global-lang-toggle" aria-label="Global Language" style="border:0;background:transparent;outline:none;font-weight:600;color:#374151;min-width:106px;">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="ar">العربية</option>
+            <option value="hi">हिन्दी</option>
+            <option value="ja">日本語</option>
+        </select>
+    `;
+    document.body.appendChild(host);
+    const sel = document.getElementById('global-lang-toggle');
+    if (sel) {
+        sel.value = currentLanguage;
+        sel.addEventListener('change', (e) => {
+            const next = e.target && e.target.value ? e.target.value : 'en';
+            changeLanguage(next);
+        });
     }
+    updateGlobalLanguageControlVisibility();
 }
 // Initialize Language on Load
 // Initialize Language & Auth on Load
 document.addEventListener('DOMContentLoaded', () => {
+    ensureGlobalLanguageControl();
     updateTranslations();
     const isLoggedIn = restoreAuthState();
     if (isLoggedIn) {
@@ -2039,6 +2077,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTeacherControls();
         }
     }
+    updateGlobalLanguageControlVisibility();
     // Strict Hash-Based Routing Logic
     const hash = window.location.hash.substring(1);
     const safeSwitch = (id) => {
@@ -2803,6 +2842,7 @@ function switchView(viewId, updateHistory = true) {
     else {
         body.classList.remove('login-mode');
     }
+    updateGlobalLanguageControlVisibility(viewId);
 
     // View Specific Loaders
     if (viewId === 'test-results-view') {
@@ -2820,6 +2860,8 @@ function switchView(viewId, updateHistory = true) {
     if (viewId === 'student-exams-view') {
         if (typeof loadStudentAssignmentsExamSchedules === 'function')
             loadStudentAssignmentsExamSchedules();
+        if (typeof loadStudentAssignmentsAndResults === 'function')
+            loadStudentAssignmentsAndResults();
         const examsTabBtn = document.getElementById('exams-tab-btn');
         if (examsTabBtn && !examsTabBtn.dataset.boundLoad) {
             examsTabBtn.dataset.boundLoad = '1';
@@ -2828,6 +2870,12 @@ function switchView(viewId, updateHistory = true) {
                     loadStudentAssignmentsExamSchedules();
             });
         }
+    }
+    if (viewId === 'timetable-view') {
+        if (typeof loadTimetable === 'function') loadTimetable();
+    }
+    if (viewId === 'parent-attendance-view' && appState.role === 'Student') {
+        if (typeof loadStudentAttendanceView === 'function') loadStudentAttendanceView();
     }
     if (viewId === 'attendance-sheet-view') {
         if (typeof initAttendanceSheetView === 'function') initAttendanceSheetView();
@@ -2866,7 +2914,12 @@ function switchView(viewId, updateHistory = true) {
         if (typeof loadProgressReportView === 'function') loadProgressReportView();
     }
     if (viewId === 'parent-progress-card-view') {
-        if (typeof loadParentProgressCardView === 'function') loadParentProgressCardView();
+        if (appState.role === 'Student') {
+            if (typeof loadStudentProgressCardView === 'function') loadStudentProgressCardView();
+        }
+        else if (typeof loadParentProgressCardView === 'function') {
+            loadParentProgressCardView();
+        }
     }
     if (viewId === 'parent-exam-schedule-view') {
         if (typeof loadParentExamScheduleView === 'function') loadParentExamScheduleView();
@@ -2966,7 +3019,26 @@ function showRegister(e) {
 function showLogin(e) {
     if (e)
         e.preventDefault();
+    clearLoginFormSensitiveFields();
     switchView('login-view');
+}
+
+function clearLoginFormSensitiveFields() {
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    const clearNow = () => {
+        if (usernameEl) {
+            usernameEl.value = '';
+            usernameEl.setAttribute('autocomplete', 'off');
+        }
+        if (passwordEl) {
+            passwordEl.value = '';
+            passwordEl.setAttribute('autocomplete', 'new-password');
+        }
+    };
+    clearNow();
+    setTimeout(clearNow, 0);
+    setTimeout(clearNow, 150);
 }
 // --- AUTHENTICATION ---
 function handleRegister(e) {
@@ -3225,6 +3297,7 @@ function handleResetPasswordSubmit(e) {
 function selectLoginRole(role) {
     // 1. Update State
     document.getElementById('selected-role').value = role;
+    clearLoginFormSensitiveFields();
     // 2. Update UI (New Elements)
     const roleLabelMap = {
         'Student': 'role_student',
@@ -3335,7 +3408,7 @@ function handleLogin(e) {
                 appState.schoolId = data.school_id;
                 appState.schoolName = data.school_name;
                 appState.isSuperAdmin = data.is_super_admin;
-                appState.name = data.name;
+                appState.name = data.name || data.user_id;
                 appState.roles = data.roles || [];
                 appState.permissions = data.permissions || [];
                 applyRoleTheme();
@@ -3421,6 +3494,7 @@ function handle2FASubmit(e) {
                 appState.schoolId = data.school_id;
                 appState.schoolName = data.school_name;
                 appState.isSuperAdmin = data.is_super_admin;
+                appState.name = data.name || data.user_id;
                 // Fix for Parent: Use Related Student ID as Active Student
                 if ((appState.role === 'Parent' || appState.role === 'Parent_Guardian') && data.related_student_id) {
                     appState.activeStudentId = data.related_student_id;
@@ -3494,6 +3568,7 @@ function handleCredentialResponse(response) {
                 appState.schoolId = data.school_id;
                 appState.schoolName = data.school_name;
                 appState.isSuperAdmin = data.is_super_admin;
+                appState.name = data.name || data.user_id;
                 // Fix for Parent: Use Related Student ID as Active Student
                 if ((appState.role === 'Parent' || appState.role === 'Parent_Guardian') && data.related_student_id) {
                     appState.activeStudentId = data.related_student_id;
@@ -3572,6 +3647,7 @@ function handleSocialLogin(provider) {
                         appState.schoolId = data.school_id;
                         appState.schoolName = data.school_name;
                         appState.isSuperAdmin = data.is_super_admin;
+                        appState.name = data.name || data.user_id;
                         // Fix for Parent: Use Related Student ID as Active Student
                         if ((appState.role === 'Parent' || appState.role === 'Parent_Guardian') && data.related_student_id) {
                             appState.activeStudentId = data.related_student_id;
@@ -3626,6 +3702,7 @@ function handleSocialLogin(provider) {
                 appState.schoolId = data.school_id;
                 appState.schoolName = data.school_name;
                 appState.isSuperAdmin = data.is_super_admin;
+                appState.name = data.name || data.user_id;
                 appState.activeStudentId = (data.role === 'Parent' || data.role === 'Student') ? data.user_id : null;
                 elements.loginMessage.textContent = `Success! Welcome, ${data.user_id}`;
                 if (appState.schoolName && appState.schoolName !== 'Independent') {
@@ -4287,12 +4364,16 @@ function handleLogout() {
             }
         }
         Object.assign(appState, { isLoggedIn: false, role: null, userId: null, activeStudentId: null, chatMessages: {}, activeSchoolId: null, schoolName: null });
+        localStorage.removeItem('classbridge_session');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('access_token');
+        sessionStorage.removeItem('classbridge_session');
         applyRoleTheme();
         elements.authStatus.innerHTML = 'Login to continue...';
         elements.userControls.innerHTML = '<p class="text-muted small">Navigation controls will appear here.</p>';
         document.getElementById('invite-section').classList.add('d-none'); // Hide invite section
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
+        clearLoginFormSensitiveFields();
         document.body.classList.add('login-mode');
         switchView('login-view');
         elements.loginMessage.textContent = 'Successfully logged out.';
@@ -4369,10 +4450,27 @@ function getSidebarConfig(role) {
                 ]
             },
             {
+                label: 'sidebar_timetable', icon: 'schedule', id: 'cat-student-timetable',
+                children: [
+                    { label: 'sidebar_view_timetable', view: 'timetable-view', route: '/student/timetable' }
+                ]
+            },
+            {
+                label: 'sidebar_attendance', icon: 'rule', id: 'cat-student-attendance',
+                children: [
+                    { label: 'sidebar_attendance_report', view: 'parent-attendance-view', route: '/student/attendance' }
+                ]
+            },
+            {
                 label: 'sidebar_exams', icon: 'event', id: 'cat-exams',
                 children: [
-                    { label: 'sidebar_upcoming_exams', view: 'upcoming-exams-view', route: '/student/exams/upcoming' },
-                    { label: 'sidebar_results', view: 'student-performance-view', route: '/student/exams/results' }
+                    { label: 'sidebar_upcoming_exams', view: 'upcoming-exams-view', route: '/student/exams/upcoming' }
+                ]
+            },
+            {
+                label: 'sidebar_progress_card', icon: 'bar_chart', id: 'cat-student-progress',
+                children: [
+                    { label: 'sidebar_view_progress', view: 'parent-progress-card-view', route: '/student/progress' }
                 ]
             },
             {
@@ -14470,14 +14568,231 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- TIMETABLE & LEAVE ---
 function loadTimetable() {
     return __awaiter(this, void 0, void 0, function* () {
-        const container = document.getElementById('timetable-view'); // We need to ensure we have a container for this
-        // Since the user asked for Timetable view, let's assume we render it into a designated area or modal.
-        // For now, let's look for a specialized ID or just skip if not present.
-        // I recall adding 'timetable-view' in an earlier step or assuming it exists. 
-        // Wait, I haven't added `timetable-view` to index.html explicitly yet, I skipped it.
-        // I should add the logic to fetch and basic render, and users can trigger it.
-        // Actually, I'll assume there's a div with ID 'timetable-list' inside the timetable view used by the layout.
-        // Let's implement the fetching logic primarily.
+        const container = document.getElementById('timetable-view');
+        if (!container)
+            return;
+        container.innerHTML = '<div class="text-center py-5"><span class="spinner-border text-primary"></span><p class="text-muted mt-2">Loading timetable...</p></div>';
+        const isStudent = appState.role === 'Student';
+        const endpoint = isStudent ? '/timetable/student/my' : `/timetable/teacher/${encodeURIComponent(appState.userId || '')}`;
+        try {
+            const res = yield fetchAPI(endpoint);
+            if (!res.ok) {
+                const err = yield res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to load timetable.');
+            }
+            const data = yield res.json();
+            let entries = [];
+            if (Array.isArray(data.entries)) {
+                entries = data.entries;
+            }
+            else if (data && typeof data === 'object') {
+                Object.keys(data).forEach(day => {
+                    const dayRows = Array.isArray(data[day]) ? data[day] : [];
+                    dayRows.forEach(r => {
+                        const time = String(r.time || '').split('-').map(v => v.trim());
+                        entries.push({
+                            day_of_week: day,
+                            period_number: r.period || null,
+                            start_time: time[0] || '',
+                            end_time: time[1] || '',
+                            subject: r.subject || '',
+                            class_grade: null,
+                            section: null
+                        });
+                    });
+                });
+            }
+            if (!entries.length) {
+                container.innerHTML = '<div class="alert alert-info mb-0">No timetable records found.</div>';
+                return;
+            }
+            const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
+            entries.sort((a, b) => {
+                const da = dayOrder[a.day_of_week] || 99;
+                const db = dayOrder[b.day_of_week] || 99;
+                if (da !== db)
+                    return da - db;
+                const pa = Number(a.period_number || 0);
+                const pb = Number(b.period_number || 0);
+                if (pa !== pb)
+                    return pa - pb;
+                return String(a.start_time || '').localeCompare(String(b.start_time || ''));
+            });
+            const grouped = {};
+            entries.forEach(e => {
+                const day = e.day_of_week || 'Unknown';
+                if (!grouped[day])
+                    grouped[day] = [];
+                grouped[day].push(e);
+            });
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 class="fw-bold mb-1 text-dark">${isStudent ? 'My Timetable' : 'Teacher Timetable'}</h3>
+                        <p class="text-muted small mb-0">${isStudent ? `Grade ${data.grade || '-'}${data.section ? ` • Section ${data.section}` : ''}` : (appState.userName || appState.userId || '')}</p>
+                    </div>
+                </div>
+                ${Object.keys(grouped).map(day => `
+                    <div class="card border-0 shadow-sm rounded-4 mb-3">
+                        <div class="card-header bg-white fw-bold">${day}</div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3">Period</th>
+                                            <th>Time</th>
+                                            <th>Subject</th>
+                                            ${isStudent ? '' : '<th class="pe-3">Class</th>'}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${grouped[day].map(r => `
+                                            <tr>
+                                                <td class="ps-3">${r.period_number || '-'}</td>
+                                                <td>${r.start_time || '-'}${r.end_time ? ` - ${r.end_time}` : ''}</td>
+                                                <td>${r.subject || '-'}</td>
+                                                ${isStudent ? '' : `<td class="pe-3">${r.class_grade ? `Grade ${r.class_grade}${r.section ? `-${r.section}` : ''}` : '-'}</td>`}
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+        catch (e) {
+            container.innerHTML = `<div class="alert alert-danger mb-0">${e.message}</div>`;
+        }
+    });
+}
+
+function loadStudentAttendanceView() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const view = document.getElementById('parent-attendance-view');
+        if (!view)
+            return;
+        view.innerHTML = '<div class="text-center py-5"><span class="spinner-border text-primary"></span><p class="text-muted mt-2">Loading attendance...</p></div>';
+        try {
+            const now = new Date();
+            const selectedMonth = Number(view.dataset.selectedMonth || (now.getMonth() + 1));
+            const selectedYear = Number(view.dataset.selectedYear || now.getFullYear());
+            const res = yield fetchAPI(`/attendance/student/my?month=${encodeURIComponent(String(selectedMonth))}&year=${encodeURIComponent(String(selectedYear))}&months_back=6`);
+            if (!res.ok) {
+                const err = yield res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to load attendance.');
+            }
+            const data = yield res.json();
+            const summary = data.summary || {};
+            const records = Array.isArray(data.records) ? data.records : [];
+            const monthly = Array.isArray(data.monthly_summary) ? data.monthly_summary : [];
+            const dailyTrend = data.trend && Array.isArray(data.trend.daily) ? data.trend.daily : [];
+            const monthOptions = [
+                { v: 1, label: 'January' }, { v: 2, label: 'February' }, { v: 3, label: 'March' },
+                { v: 4, label: 'April' }, { v: 5, label: 'May' }, { v: 6, label: 'June' },
+                { v: 7, label: 'July' }, { v: 8, label: 'August' }, { v: 9, label: 'September' },
+                { v: 10, label: 'October' }, { v: 11, label: 'November' }, { v: 12, label: 'December' }
+            ];
+            view.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                    <h3 class="fw-bold mb-0 text-dark">My Attendance</h3>
+                    <div class="d-flex gap-2 align-items-center">
+                        <select id="student-att-month" class="form-select form-select-sm">
+                            ${monthOptions.map(m => `<option value="${m.v}" ${m.v === selectedMonth ? 'selected' : ''}>${m.label}</option>`).join('')}
+                        </select>
+                        <input id="student-att-year" type="number" class="form-control form-control-sm" min="2000" max="2100" value="${selectedYear}" style="max-width: 100px;">
+                        <button id="student-att-apply" class="btn btn-sm btn-primary-custom">Apply</button>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Overall Rate</div><div class="h4 fw-bold mb-0">${summary.overall_rate ?? 0}%</div></div></div>
+                    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Month Rate</div><div class="h4 fw-bold mb-0 text-primary">${summary.window_rate ?? 0}%</div></div></div>
+                    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Present</div><div class="h4 fw-bold mb-0 text-success">${summary.present || 0}</div></div></div>
+                    <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Absent</div><div class="h4 fw-bold mb-0 text-danger">${summary.absent || 0}</div></div></div>
+                </div>
+                <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+                    <h6 class="fw-bold mb-3">Present vs Absent Trend (${data.from_date || '-'} to ${data.to_date || '-'})</h6>
+                    <div id="student-attendance-trend-chart" style="height: 280px;"></div>
+                </div>
+                <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+                    <h6 class="fw-bold mb-3">Monthly Summary (Last ${monthly.length || 0} months)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Month</th>
+                                    <th>Present</th>
+                                    <th>Absent</th>
+                                    <th>Late</th>
+                                    <th class="pe-3">Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${monthly.length ? monthly.map(m => `
+                                    <tr>
+                                        <td class="ps-3">${m.month || '-'}</td>
+                                        <td>${m.present || 0}</td>
+                                        <td>${m.absent || 0}</td>
+                                        <td>${m.late || 0}</td>
+                                        <td class="pe-3 fw-semibold">${m.attendance_rate ?? 0}%</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="5" class="text-center text-muted p-3">No monthly summary available.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white fw-semibold">Attendance Records (${data.from_date || '-'} to ${data.to_date || '-'})</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Date</th>
+                                    <th>Status</th>
+                                    <th class="pe-3">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${records.length ? records.map(r => `
+                                    <tr>
+                                        <td class="ps-3">${r.date || '-'}</td>
+                                        <td>${r.status || '-'}</td>
+                                        <td class="pe-3">${r.remarks || '-'}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="3" class="text-center text-muted p-4">No attendance records found.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            const applyBtn = document.getElementById('student-att-apply');
+            const monthEl = document.getElementById('student-att-month');
+            const yearEl = document.getElementById('student-att-year');
+            if (applyBtn && monthEl && yearEl) {
+                applyBtn.onclick = () => {
+                    const m = Number(monthEl.value || now.getMonth() + 1);
+                    const y = Number(yearEl.value || now.getFullYear());
+                    view.dataset.selectedMonth = String(m);
+                    view.dataset.selectedYear = String(y);
+                    loadStudentAttendanceView();
+                };
+            }
+            const trendChart = document.getElementById('student-attendance-trend-chart');
+            if (trendChart && typeof Plotly !== 'undefined' && dailyTrend.length) {
+                const x = dailyTrend.map(d => d.date || '');
+                const presentY = dailyTrend.map(d => Number(d.present || 0));
+                const absentY = dailyTrend.map(d => Number(d.absent || 0));
+                const tracePresent = { x, y: presentY, mode: 'lines+markers', type: 'scatter', name: 'Present', line: { color: '#198754', width: 2 } };
+                const traceAbsent = { x, y: absentY, mode: 'lines+markers', type: 'scatter', name: 'Absent', line: { color: '#dc3545', width: 2 } };
+                const layout = { margin: { t: 20, r: 20, b: 50, l: 40 }, xaxis: { title: 'Date' }, yaxis: { title: 'Flag', range: [-0.1, 1.1], dtick: 1 }, legend: { orientation: 'h' } };
+                Plotly.newPlot(trendChart, [tracePresent, traceAbsent], layout, { displayModeBar: false, responsive: true });
+            }
+        }
+        catch (e) {
+            view.innerHTML = `<div class="alert alert-danger mb-0">${e.message}</div>`;
+        }
     });
 }
 function loadPendingLeaves() {
@@ -15346,6 +15661,25 @@ async function loadParentProgressCardView() {
     }
 }
 
+async function loadStudentProgressCardView() {
+    const container = document.getElementById('parent-progress-card-container');
+    if (!container)
+        return;
+    const studentId = appState.activeStudentId || appState.userId;
+    if (!studentId) {
+        container.innerHTML = '<div class="text-center text-muted py-4">Student session not found.</div>';
+        return;
+    }
+    container.innerHTML = '<div class="text-center p-4"><span class="spinner-border text-primary"></span></div>';
+    try {
+        const data = await fetchProgressCard(studentId);
+        renderProgressCard(data, container, true);
+    }
+    catch (e) {
+        container.innerHTML = `<div class="text-danger p-3">Error: ${e.message}</div>`;
+    }
+}
+
 // --- EMAIL LOGIC ---
 function renderEmailListItem(email, inbox = true) {
     const fromToLabel = inbox ? `From: ${email.sender_id}` : `To: ${email.recipient_email}`;
@@ -15844,6 +16178,99 @@ async function loadStudentAssignmentsExamSchedules() {
     catch (e) {
         console.error(e);
         container.innerHTML = '<div class="alert alert-danger mb-0">Network error while loading exam schedules.</div>';
+    }
+}
+
+async function loadStudentAssignmentsAndResults() {
+    const studentId = appState.activeStudentId || appState.userId;
+    if (!studentId)
+        return;
+
+    const homeworkTab = document.getElementById('homework-tab');
+    const resultsTab = document.getElementById('results-tab');
+
+    if (homeworkTab) {
+        homeworkTab.innerHTML = '<div class="alert alert-light border text-muted mb-0">Loading assignments...</div>';
+    }
+    if (resultsTab) {
+        resultsTab.innerHTML = '<div class="alert alert-light border text-muted mb-0">Loading results...</div>';
+    }
+
+    try {
+        const [assignRes, progressRes] = await Promise.all([
+            fetchAPI(`/students/${encodeURIComponent(studentId)}/assignments`),
+            fetchAPI(`/progress-card/${encodeURIComponent(studentId)}`)
+        ]);
+
+        const assignments = assignRes.ok ? await assignRes.json() : [];
+        const progress = progressRes.ok ? await progressRes.json() : null;
+
+        if (homeworkTab) {
+            if (!Array.isArray(assignments) || assignments.length === 0) {
+                homeworkTab.innerHTML = '<div class="alert alert-info mb-0">No assignments available right now.</div>';
+            }
+            else {
+                homeworkTab.innerHTML = `
+                    <div class="list-group">
+                        ${assignments.map(a => `
+                            <div class="list-group-item p-3 border-start border-4 border-warning mb-2 rounded">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1 fw-bold">${a.title || 'Assignment'}</h5>
+                                    <small class="text-danger fw-bold">${a.due_date ? `Due ${a.due_date}` : 'No due date'}</small>
+                                </div>
+                                <p class="mb-1">${a.type || 'Assignment'}</p>
+                                <small class="text-muted">${a.course_name || 'Class Assignment'}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        if (resultsTab) {
+            const recent = progress && Array.isArray(progress.recent_marks) ? progress.recent_marks : [];
+            if (recent.length === 0) {
+                resultsTab.innerHTML = '<div class="alert alert-info mb-0">No exam results published yet.</div>';
+            }
+            else {
+                resultsTab.innerHTML = `
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Exam</th>
+                                        <th>Subject</th>
+                                        <th>Score</th>
+                                        <th>Grade</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${recent.map(r => `
+                                        <tr>
+                                            <td>${r.exam_name || '-'}</td>
+                                            <td>${r.subject || '-'}</td>
+                                            <td class="fw-bold text-success">${r.max_marks ? `${r.marks_obtained}/${r.max_marks}` : (r.marks_obtained ?? '-')}</td>
+                                            <td>${r.grade || '-'}</td>
+                                            <td>${r.date || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    }
+    catch (e) {
+        if (homeworkTab) {
+            homeworkTab.innerHTML = `<div class="alert alert-danger mb-0">Unable to load assignments: ${e.message}</div>`;
+        }
+        if (resultsTab) {
+            resultsTab.innerHTML = `<div class="alert alert-danger mb-0">Unable to load results: ${e.message}</div>`;
+        }
     }
 }
 

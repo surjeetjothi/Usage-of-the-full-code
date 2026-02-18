@@ -1779,55 +1779,6 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-3">
-                        <!-- Language Selector -->
-                        <div class="dropdown">
-                            <button
-                                class="btn btn-outline-light rounded-pill px-3 py-2 dropdown-toggle d-flex align-items-center gap-2"
-                                type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false"
-                                style="border-color: rgba(255,255,255,0.4);">
-                                <img id="current-lang-flag" src="https://flagcdn.com/w40/us.png" alt="Flag"
-                                    style="width: 20px; height: 15px; object-fit: cover; border-radius: 2px;">
-                                <span id="current-lang-text" class="fw-bold">English</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2 p-2"
-                                aria-labelledby="languageDropdown">
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 rounded py-2" href="#"
-                                        onclick="changeLanguage('en')">
-                                        <img src="https://flagcdn.com/w40/us.png" width="20" alt="English">
-                                        <span class="fw-medium">English</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 rounded py-2" href="#"
-                                        onclick="changeLanguage('es')">
-                                        <img src="https://flagcdn.com/w40/es.png" width="20" alt="Español">
-                                        <span class="fw-medium">Español</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 rounded py-2" href="#"
-                                        onclick="changeLanguage('ar')">
-                                        <img src="https://flagcdn.com/w40/sa.png" width="20" alt="Arabic">
-                                        <span class="fw-medium">العربية</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 rounded py-2" href="#"
-                                        onclick="changeLanguage('hi')">
-                                        <img src="https://flagcdn.com/w40/in.png" width="20" alt="Hindi">
-                                        <span class="fw-medium">हिन्दी</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 rounded py-2" href="#"
-                                        onclick="changeLanguage('ja')">
-                                        <img src="https://flagcdn.com/w40/jp.png" width="20" alt="Japanese">
-                                        <span class="fw-medium">日本語</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
                         <button class="btn btn-outline-light rounded-pill px-4 fw-bold"
                             onclick="switchView('login-view')" data-i18n="btn_log_in">
                             Log in
@@ -3624,23 +3575,13 @@
 
                 <!-- Right Side: Login Form -->
                 <div class="col-12 col-lg-6 d-flex flex-column bg-white position-relative">
-                    <!-- Language & Mobile Nav -->
+                    <!-- Mobile Nav -->
                     <div class="d-flex justify-content-between p-4 align-items-center mb-auto">
                         <a href="#"
                             class="d-lg-none d-flex align-items-center gap-2 text-primary-custom text-decoration-none"
                             onclick="switchView('landing-view')">
                             <span class="material-icons">arrow_back</span> <span data-i18n="text_back">Back</span>
                         </a>
-                        <div class="ms-auto" style="width: 140px;">
-                            <select class="form-select form-select-sm" id="lang-toggle"
-                                onchange="changeLanguage(this.value)" aria-label="Select Language">
-                                <option value="en">🇺🇸 English</option>
-                                <option value="es">🇪🇸 Español</option>
-                                <option value="ar">🇸🇦 العربية</option>
-                                <option value="hi">🇮🇳 हिन्दी</option>
-                                <option value="ja">🇯🇵 日本語</option>
-                            </select>
-                        </div>
                     </div>
 
                     <div class="px-4 py-3 mx-auto w-100" style="max-width: 480px; margin-bottom: auto;">
@@ -3679,12 +3620,12 @@
                         <form id="login-form">
                             <input type="hidden" id="selected-role" value="Student">
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control bg-light border-0" id="username"
+                                <input type="text" class="form-control bg-light border-0" id="username" autocomplete="off"
                                     placeholder="Email" required aria-label="Email">
                                 <label for="username" data-i18n="label_username">Email</label>
                             </div>
                             <div class="form-floating mb-3">
-                                <input type="password" class="form-control bg-light border-0" id="password"
+                                <input type="password" class="form-control bg-light border-0" id="password" autocomplete="new-password"
                                     placeholder="Password" required aria-label="Password">
                                 <label for="password" data-i18n="label_password">Password</label>
                             </div>
@@ -5809,60 +5750,15 @@
             </ul>
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="homework-tab">
-                    <div class="list-group">
-                        <div class="list-group-item p-3 border-start border-4 border-warning">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1 fw-bold">Algebra Worksheet</h5>
-                                <small class="text-danger fw-bold">Due Tomorrow</small>
-                            </div>
-                            <p class="mb-1">Complete exercises 5.1 to 5.5.</p>
-                            <small class="text-muted">Math • Posted by Mr. Smith</small>
-                        </div>
-                        <div class="list-group-item p-3 border-start border-4 border-success mt-2">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1 fw-bold">Physics Lab Report</h5>
-                                <small class="text-muted">Due in 3 days</small>
-                            </div>
-                            <p class="mb-1">Submit your findings on the pendulum experiment.</p>
-                        </div>
-                    </div>
+                    <div class="alert alert-light border text-muted mb-0">Loading assignments...</div>
                 </div>
                 <div class="tab-pane fade" id="exams-tab">
-                    <div class="alert alert-info">
-                        <h5 class="alert-heading fw-bold"><span class="material-icons align-middle">event</span>
-                            Mid-Term Exams</h5>
-                        <p>Starting from Oct 15th. Check detailed schedule below.</p>
-                        <hr>
-                        <ul class="mb-0">
-                            <li>Oct 15: Mathematics</li>
-                            <li>Oct 17: Science</li>
-                            <li>Oct 19: English</li>
-                        </ul>
+                    <div id="student-assignment-exam-schedules">
+                        <div class="alert alert-light border text-muted mb-0">Loading exam schedules...</div>
                     </div>
                 </div>
                 <div class="tab-pane fade" id="results-tab">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Exam</th>
-                                        <th>Date</th>
-                                        <th>Score</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Unit Test 1</td>
-                                        <td>Sep 01</td>
-                                        <td class="fw-bold text-success">85/100</td>
-                                        <td><span class="badge bg-success">Passed</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <div class="alert alert-light border text-muted mb-0">Loading results...</div>
                 </div>
             </div>
         </div>

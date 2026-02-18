@@ -11941,6 +11941,216 @@ async def get_class_attendance(grade: int, date: str):
     conn.close()
     return results
 
+@app.get("/api/attendance/student/my")
+async def get_my_attendance(
+    days: int = 30,
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    months_back: int = 6,
+    x_user_id: str = Header(None, alias="X-User-Id")
+):
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="Missing X-User-Id header.")
+
+    days = max(1, min(days, 365))
+    months_back = max(1, min(months_back, 24))
+
+    def _parse_date(v: Optional[str]) -> Optional[datetime.date]:
+        if not v:
+            return None
+        try:
+            return datetime.strptime(v.strip(), "%Y-%m-%d").date()
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid date format: {v}. Use YYYY-MM-DD.")
+
+    def _shift_month(d: datetime.date, delta_months: int) -> datetime.date:
+        y = d.year
+        m = d.month + delta_months
+        while m <= 0:
+            m += 12
+            y -= 1
+        while m > 12:
+            m -= 12
+            y += 1
+        return datetime(y, m, 1).date()
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    try:
+        student = c.execute(
+            "SELECT id, role, attendance_rate FROM students WHERE id = ?",
+            (x_user_id,)
+        ).fetchone()
+        if not student:
+            raise HTTPException(status_code=404, detail="User not found.")
+        if student["role"] != "Student":
+            raise HTTPException(status_code=403, detail="Only students can access this endpoint.")
+
+        today = datetime.now().date()
+        parsed_from = _parse_date(from_date)
+        parsed_to = _parse_date(to_date)
+
+        if parsed_from or parsed_to:
+            range_from = parsed_from or (parsed_to - timedelta(days=days - 1))
+            range_to = parsed_to or (range_from + timedelta(days=days - 1))
+        elif month is not None or year is not None:
+            if month is None or year is None:
+                raise HTTPException(status_code=400, detail="Both month and year are required together.")
+            if month < 1 or month > 12:
+                raise HTTPException(status_code=400, detail="month must be between 1 and 12.")
+            if year < 2000 or year > 2100:
+                raise HTTPException(status_code=400, detail="year must be between 2000 and 2100.")
+            range_from = datetime(year, month, 1).date()
+            if month == 12:
+                range_to = datetime(year + 1, 1, 1).date() - timedelta(days=1)
+            else:
+                range_to = datetime(year, month + 1, 1).date() - timedelta(days=1)
+        else:
+            range_to = today
+            range_from = today - timedelta(days=days - 1)
+
+        if range_from > range_to:
+            raise HTTPException(status_code=400, detail="from_date cannot be after to_date.")
+
+        from_date_str = range_from.strftime("%Y-%m-%d")
+        to_date_str = range_to.strftime("%Y-%m-%d")
+
+        rows = c.execute(
+            """
+            SELECT date, status, remarks, created_at
+            FROM student_attendance
+            WHERE student_id = ?
+              AND date >= ?
+              AND date <= ?
+            ORDER BY date DESC, created_at DESC
+            """,
+            (x_user_id, from_date_str, to_date_str)
+        ).fetchall()
+
+        # Keep latest entry per date (if duplicates exist) for stable summaries/trends.
+        by_date = {}
+        for r in rows:
+            rec = dict(r)
+            rec_date = (rec.get("date") or "").strip()
+            if rec_date and rec_date not in by_date:
+                by_date[rec_date] = rec
+
+        records = sorted(by_date.values(), key=lambda x: (x.get("date") or ""), reverse=True)
+        present_count = sum(1 for r in records if (r.get("status") or "").strip().title() == "Present")
+        absent_count = sum(1 for r in records if (r.get("status") or "").strip().title() == "Absent")
+        late_count = sum(1 for r in records if (r.get("status") or "").strip().title() == "Late")
+        total_marked = len(records)
+
+        computed_rate = (present_count / total_marked * 100.0) if total_marked > 0 else None
+        overall_rate = round(student["attendance_rate"] or 0.0, 1)
+
+        # Monthly summary for trend cards/charts (last `months_back` months including current month).
+        month_anchor = datetime(today.year, today.month, 1).date()
+        monthly_from = _shift_month(month_anchor, -(months_back - 1))
+        monthly_rows = c.execute(
+            """
+            SELECT date, status, remarks, created_at
+            FROM student_attendance
+            WHERE student_id = ?
+              AND date >= ?
+              AND date <= ?
+            ORDER BY date DESC, created_at DESC
+            """,
+            (x_user_id, monthly_from.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d"))
+        ).fetchall()
+
+        month_date_map: Dict[str, Dict[str, Any]] = {}
+        for r in monthly_rows:
+            rec = dict(r)
+            rec_date = (rec.get("date") or "").strip()
+            if not rec_date:
+                continue
+            if rec_date not in month_date_map:
+                month_date_map[rec_date] = rec
+
+        monthly_bucket: Dict[str, Dict[str, Any]] = {}
+        for rec in month_date_map.values():
+            month_key = (rec.get("date") or "")[:7]  # YYYY-MM
+            if len(month_key) != 7:
+                continue
+            bucket = monthly_bucket.setdefault(month_key, {
+                "month": month_key,
+                "present": 0,
+                "absent": 0,
+                "late": 0,
+                "total_marked": 0
+            })
+            status = (rec.get("status") or "").strip().title()
+            if status == "Present":
+                bucket["present"] += 1
+            elif status == "Absent":
+                bucket["absent"] += 1
+            elif status == "Late":
+                bucket["late"] += 1
+            bucket["total_marked"] += 1
+
+        month_keys = []
+        for i in range(months_back):
+            d = _shift_month(month_anchor, -i)
+            month_keys.append(d.strftime("%Y-%m"))
+        month_keys = list(reversed(month_keys))
+
+        monthly_summary = []
+        for mk in month_keys:
+            bucket = monthly_bucket.get(mk, {
+                "month": mk,
+                "present": 0,
+                "absent": 0,
+                "late": 0,
+                "total_marked": 0
+            })
+            total_m = bucket["total_marked"]
+            bucket["attendance_rate"] = round((bucket["present"] / total_m) * 100.0, 1) if total_m > 0 else None
+            monthly_summary.append(bucket)
+
+        daily_trend = []
+        for rec in sorted(records, key=lambda x: (x.get("date") or "")):
+            status = (rec.get("status") or "").strip().title()
+            daily_trend.append({
+                "date": rec.get("date"),
+                "status": status,
+                "present": 1 if status == "Present" else 0,
+                "absent": 1 if status == "Absent" else 0,
+                "late": 1 if status == "Late" else 0
+            })
+
+        return {
+            "student_id": x_user_id,
+            "from_date": from_date_str,
+            "to_date": to_date_str,
+            "filters": {
+                "days": days,
+                "month": month,
+                "year": year,
+                "from_date": from_date,
+                "to_date": to_date
+            },
+            "summary": {
+                "days_requested": days,
+                "total_marked": total_marked,
+                "present": present_count,
+                "absent": absent_count,
+                "late": late_count,
+                "window_rate": round(computed_rate, 1) if computed_rate is not None else None,
+                "overall_rate": overall_rate
+            },
+            "records": records,
+            "monthly_summary": monthly_summary,
+            "trend": {
+                "daily": daily_trend,
+                "monthly": monthly_summary
+            }
+        }
+    finally:
+        conn.close()
+
 # --- TIMETABLE MODULE ---
 @app.get("/api/timetable/teacher/{teacher_id}")
 async def get_teacher_timetable(teacher_id: str):
@@ -11961,6 +12171,74 @@ async def get_teacher_timetable(teacher_id: str):
             "class": f"Grade {r['class_grade']}-{r['section']}"
         })
     return days
+
+@app.get("/api/timetable/student/my")
+async def get_my_timetable(x_user_id: str = Header(None, alias="X-User-Id")):
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="Missing X-User-Id header.")
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    try:
+        student = c.execute(
+            "SELECT id, role, grade, section_id FROM students WHERE id = ?",
+            (x_user_id,)
+        ).fetchone()
+        if not student:
+            raise HTTPException(status_code=404, detail="User not found.")
+        if student["role"] != "Student":
+            raise HTTPException(status_code=403, detail="Only students can access this endpoint.")
+
+        grade = student["grade"]
+        section_name = None
+        if student["section_id"]:
+            sec = c.execute("SELECT name FROM sections WHERE id = ?", (student["section_id"],)).fetchone()
+            if sec:
+                section_name = sec["name"]
+
+        order_expr = """
+            CASE day_of_week
+                WHEN 'Monday' THEN 1
+                WHEN 'Tuesday' THEN 2
+                WHEN 'Wednesday' THEN 3
+                WHEN 'Thursday' THEN 4
+                WHEN 'Friday' THEN 5
+                WHEN 'Saturday' THEN 6
+                WHEN 'Sunday' THEN 7
+                ELSE 8
+            END
+        """
+
+        if section_name:
+            rows = c.execute(
+                f"""
+                SELECT id, day_of_week, period_number, start_time, end_time, subject, teacher_id, class_grade, section
+                FROM timetables
+                WHERE class_grade = ?
+                  AND (section = ? OR section IS NULL OR TRIM(section) = '')
+                ORDER BY {order_expr}, period_number ASC, start_time ASC
+                """,
+                (grade, section_name)
+            ).fetchall()
+        else:
+            rows = c.execute(
+                f"""
+                SELECT id, day_of_week, period_number, start_time, end_time, subject, teacher_id, class_grade, section
+                FROM timetables
+                WHERE class_grade = ?
+                ORDER BY {order_expr}, period_number ASC, start_time ASC
+                """,
+                (grade,)
+            ).fetchall()
+
+        return {
+            "student_id": x_user_id,
+            "grade": grade,
+            "section": section_name,
+            "entries": [dict(r) for r in rows]
+        }
+    finally:
+        conn.close()
 
 # --- LEAVE REQUEST MODULE ---
 class LeaveRequestCreate(BaseModel):
