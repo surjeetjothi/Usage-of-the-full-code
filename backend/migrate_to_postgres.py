@@ -8,7 +8,12 @@ load_dotenv()
 # Tables ordered by dependency (Parents first)
 TABLES = [
     'schools', 
+    'roles',
+    'permissions',
+    'role_permissions',
     'students', 
+    'user_roles',
+    'guardians',
     'invitations', 
     'password_resets', 
     'backup_codes', 
@@ -19,10 +24,17 @@ TABLES = [
     'group_members', 
     'group_materials', 
     'quizzes', 
-    'quiz_attempts'
+    'quiz_attempts',
+    'messages',
+    'student_attendance',
+    'student_marks',
+    'emails',
+    'accounts',
+    'chart_of_accounts',
+    'resources'
 ]
 
-SQLITE_DB = "edtech_fastapi_enhanced.db"
+SQLITE_DB = "class_bridge.db"
 POSTGRES_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost/edtech_db")
 
 def migrate():

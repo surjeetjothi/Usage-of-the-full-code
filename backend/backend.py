@@ -6775,6 +6775,23 @@ async def verify_backup_code(request: Verify2FARequest):
     """, (request.user_id,)).fetchall()
     perm_codes = [p['code'] for p in perms_data]
 
+    related_student_id = None
+    try:
+        if 'Parent' in role_names or 'Parent_Guardian' in role_names or role in ('Parent', 'Parent_Guardian'):
+            child = cursor.execute(
+                "SELECT student_id FROM guardians WHERE LOWER(email) = LOWER(?) ORDER BY id DESC LIMIT 1",
+                (request.user_id,),
+            ).fetchone()
+            if not child and request.user_id in PARENT_OTP_EMAIL_OVERRIDES:
+                child = cursor.execute(
+                    "SELECT student_id FROM guardians WHERE LOWER(email) = LOWER(?) ORDER BY id DESC LIMIT 1",
+                    (PARENT_OTP_EMAIL_OVERRIDES[request.user_id],),
+                ).fetchone()
+            if child:
+                related_student_id = child['student_id']
+    except Exception as e:
+        logger.error(f"Error fetching related student for 2FA: {e}")
+
     conn.commit()
     conn.close()
     
@@ -6783,20 +6800,6 @@ async def verify_backup_code(request: Verify2FARequest):
         
     logger.info(f"2FA Successful for user: {request.user_id}")
     log_auth_event(request.user_id, "Login Success", "2FA Verified")
-    
-    related_student_id = None
-    try:
-        if 'Parent' in role_names or 'Parent_Guardian' in role_names or role == 'Parent':
-             child = cursor.execute("SELECT student_id FROM guardians WHERE LOWER(email) = LOWER(?)", (request.user_id,)).fetchone()
-             if not child and request.user_id in PARENT_OTP_EMAIL_OVERRIDES:
-                 child = cursor.execute(
-                     "SELECT student_id FROM guardians WHERE LOWER(email) = LOWER(?)",
-                     (PARENT_OTP_EMAIL_OVERRIDES[request.user_id],),
-                 ).fetchone()
-             if child:
-                 related_student_id = child['student_id']
-    except Exception as e:
-        logger.error(f"Error fetching related student for 2FA: {e}")
 
     return LoginResponse(
         user_id=request.user_id,
@@ -11918,6 +11921,7 @@ async def get_my_attendance(
     year: Optional[int] = None,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
+    student_id: Optional[str] = None,
     months_back: int = 6,
     x_user_id: str = Header(None, alias="X-User-Id")
 ):
@@ -11949,14 +11953,48 @@ async def get_my_attendance(
     conn = get_db_connection()
     c = conn.cursor()
     try:
-        student = c.execute(
-            "SELECT id, role, attendance_rate FROM students WHERE id = ?",
+        requester = c.execute(
+            "SELECT id, role FROM students WHERE id = ?",
             (x_user_id,)
         ).fetchone()
-        if not student:
+        if not requester:
             raise HTTPException(status_code=404, detail="User not found.")
-        if student["role"] != "Student":
-            raise HTTPException(status_code=403, detail="Only students can access this endpoint.")
+        target_student_id = x_user_id
+        if requester["role"] == "Student":
+            target_student_id = x_user_id
+        elif requester["role"] in ("Parent", "Parent_Guardian"):
+            if student_id and student_id.strip():
+                target_student_id = student_id.strip()
+            else:
+                child = c.execute(
+                    "SELECT student_id FROM guardians WHERE LOWER(email) = LOWER(?) ORDER BY id DESC LIMIT 1",
+                    (x_user_id,),
+                ).fetchone()
+                if not child or not child["student_id"]:
+                    raise HTTPException(status_code=404, detail="No linked child found for parent.")
+                target_student_id = child["student_id"]
+
+            linked = c.execute(
+                """
+                SELECT 1
+                FROM guardians
+                WHERE LOWER(email) = LOWER(?)
+                  AND LOWER(student_id) = LOWER(?)
+                LIMIT 1
+                """,
+                (x_user_id, target_student_id),
+            ).fetchone()
+            if not linked:
+                raise HTTPException(status_code=403, detail="Access denied for this student.")
+        else:
+            raise HTTPException(status_code=403, detail="Only students/parents can access this endpoint.")
+
+        student = c.execute(
+            "SELECT id, role, attendance_rate FROM students WHERE id = ? AND role = 'Student'",
+            (target_student_id,),
+        ).fetchone()
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found.")
 
         today = datetime.now().date()
         parsed_from = _parse_date(from_date)
@@ -11996,7 +12034,7 @@ async def get_my_attendance(
               AND date <= ?
             ORDER BY date DESC, created_at DESC
             """,
-            (x_user_id, from_date_str, to_date_str)
+            (target_student_id, from_date_str, to_date_str)
         ).fetchall()
 
         # Keep latest entry per date (if duplicates exist) for stable summaries/trends.
@@ -12028,7 +12066,7 @@ async def get_my_attendance(
               AND date <= ?
             ORDER BY date DESC, created_at DESC
             """,
-            (x_user_id, monthly_from.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d"))
+            (target_student_id, monthly_from.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d"))
         ).fetchall()
 
         month_date_map: Dict[str, Dict[str, Any]] = {}
@@ -12092,7 +12130,7 @@ async def get_my_attendance(
             })
 
         return {
-            "student_id": x_user_id,
+            "student_id": target_student_id,
             "from_date": from_date_str,
             "to_date": to_date_str,
             "filters": {
@@ -12143,21 +12181,55 @@ async def get_teacher_timetable(teacher_id: str):
     return days
 
 @app.get("/api/timetable/student/my")
-async def get_my_timetable(x_user_id: str = Header(None, alias="X-User-Id")):
+async def get_my_timetable(student_id: Optional[str] = None, x_user_id: str = Header(None, alias="X-User-Id")):
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Missing X-User-Id header.")
 
     conn = get_db_connection()
     c = conn.cursor()
     try:
-        student = c.execute(
-            "SELECT id, role, grade, section_id FROM students WHERE id = ?",
+        requester = c.execute(
+            "SELECT id, role FROM students WHERE id = ?",
             (x_user_id,)
         ).fetchone()
-        if not student:
+        if not requester:
             raise HTTPException(status_code=404, detail="User not found.")
-        if student["role"] != "Student":
-            raise HTTPException(status_code=403, detail="Only students can access this endpoint.")
+        target_student_id = x_user_id
+        if requester["role"] == "Student":
+            target_student_id = x_user_id
+        elif requester["role"] in ("Parent", "Parent_Guardian"):
+            if student_id and student_id.strip():
+                target_student_id = student_id.strip()
+            else:
+                child = c.execute(
+                    "SELECT student_id FROM guardians WHERE LOWER(email) = LOWER(?) ORDER BY id DESC LIMIT 1",
+                    (x_user_id,),
+                ).fetchone()
+                if not child or not child["student_id"]:
+                    raise HTTPException(status_code=404, detail="No linked child found for parent.")
+                target_student_id = child["student_id"]
+
+            linked = c.execute(
+                """
+                SELECT 1
+                FROM guardians
+                WHERE LOWER(email) = LOWER(?)
+                  AND LOWER(student_id) = LOWER(?)
+                LIMIT 1
+                """,
+                (x_user_id, target_student_id),
+            ).fetchone()
+            if not linked:
+                raise HTTPException(status_code=403, detail="Access denied for this student.")
+        else:
+            raise HTTPException(status_code=403, detail="Only students/parents can access this endpoint.")
+
+        student = c.execute(
+            "SELECT id, role, grade, section_id FROM students WHERE id = ? AND role = 'Student'",
+            (target_student_id,),
+        ).fetchone()
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found.")
 
         grade = student["grade"]
         section_name = None
@@ -12202,7 +12274,7 @@ async def get_my_timetable(x_user_id: str = Header(None, alias="X-User-Id")):
             ).fetchall()
 
         return {
-            "student_id": x_user_id,
+            "student_id": target_student_id,
             "grade": grade,
             "section": section_name,
             "entries": [dict(r) for r in rows]
@@ -13028,7 +13100,7 @@ async def get_progress_card(student_id: str, x_user_id: str = Header(None, alias
             if not requester["is_super_admin"] and requester["school_id"] != student["school_id"]:
                 raise HTTPException(status_code=403, detail="Access denied for this school.")
 
-        published_only = requester_role == 'Parent'
+        published_only = requester_role in ('Parent', 'Parent_Guardian')
 
         # Academics: subject averages + overall
         subject_query = """
