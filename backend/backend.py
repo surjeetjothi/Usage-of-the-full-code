@@ -6483,8 +6483,6 @@ async def login_user(request: LoginRequest):
         desired_password = PARENT_PASSWORD_OVERRIDES[username_lower]
     elif auth_user_id in PARENT_PASSWORD_OVERRIDES:
         desired_password = PARENT_PASSWORD_OVERRIDES[auth_user_id]
-    elif auth_user_id in ("admin", "rootadmin"):
-        desired_password = admin_login_password
 
     # Keep requested student credential override consistent for legacy IDs.
     if desired_password and user["password"] != desired_password:
