@@ -123,6 +123,9 @@ function hasPermission(code) {
 function hasAnyPermission(codes) {
     return appState.isSuperAdmin || codes.some(code => hasPermission(code));
 }
+function isParentRole(role) {
+    return role === 'Parent' || role === 'Parent_Guardian';
+}
 function restoreAuthState() {
     const stored = localStorage.getItem('classbridge_session');
     if (stored) {
@@ -136,6 +139,7 @@ function restoreAuthState() {
         appState.isSuperAdmin = session.is_super_admin;
         appState.roles = session.roles || [];
         appState.permissions = session.permissions || [];
+        appState.activeStudentId = session.active_student_id || null;
         applyRoleTheme();
         return true;
     }
@@ -2070,7 +2074,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ensure views are cleared before routing logic takes over, 
             // though renderStudentControls might have already tried routing.
         }
-        else if (appState.role === 'Parent') {
+        else if (isParentRole(appState.role)) {
             renderParentControls();
         }
         else {
@@ -2090,7 +2094,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isLoggedIn) {
                 if (appState.role === 'Student')
                     switchView('student-view', false);
-                else if (appState.role === 'Parent')
+                else if (isParentRole(appState.role))
                     switchView('parent-dashboard-view', false);
                 else
                     switchView('teacher-view', false);
@@ -2116,7 +2120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isLoggedIn) {
             if (appState.role === 'Student')
                 switchView('student-view', false);
-            else if (appState.role === 'Parent')
+            else if (isParentRole(appState.role))
                 switchView('parent-dashboard-view', false);
             else
                 switchView('teacher-view', false);
@@ -2963,7 +2967,7 @@ window.addEventListener('popstate', (event) => {
                 // Determine default dashboard based on role
                 if (appState.role === 'Student')
                     switchView('student-view');
-                else if (appState.role === 'Parent')
+                else if (isParentRole(appState.role))
                     switchView('parent-dashboard-view');
                 else
                     switchView('teacher-view');
@@ -3392,6 +3396,9 @@ function handleLogin(e) {
                 if (data.role === selectedRole || data.role === 'Admin' || data.is_super_admin) {
                     allowLogin = true;
                 }
+                if (!allowLogin && isParentRole(data.role) && isParentRole(selectedRole)) {
+                    allowLogin = true;
+                }
                 if (!allowLogin) {
                     msgEl.textContent = `Access Denied: This account belongs to the ${data.role} portal.`;
                     msgEl.className = 'text-danger fw-bold';
@@ -3430,6 +3437,7 @@ function handleLogin(e) {
                     school_id: data.school_id,
                     school_name: data.school_name,
                     is_super_admin: data.is_super_admin,
+                    active_student_id: appState.activeStudentId,
                     roles: data.roles || [],
                     permissions: data.permissions || []
                 }));
@@ -3512,6 +3520,7 @@ function handle2FASubmit(e) {
                     school_id: data.school_id,
                     school_name: data.school_name,
                     is_super_admin: data.is_super_admin,
+                    active_student_id: appState.activeStudentId,
                     roles: data.roles || [],
                     permissions: data.permissions || []
                 }));
@@ -3703,7 +3712,7 @@ function handleSocialLogin(provider) {
                 appState.schoolName = data.school_name;
                 appState.isSuperAdmin = data.is_super_admin;
                 appState.name = data.name || data.user_id;
-                appState.activeStudentId = (data.role === 'Parent' || data.role === 'Student') ? data.user_id : null;
+                appState.activeStudentId = (isParentRole(data.role) || data.role === 'Student') ? data.user_id : null;
                 elements.loginMessage.textContent = `Success! Welcome, ${data.user_id}`;
                 if (appState.schoolName && appState.schoolName !== 'Independent') {
                     elements.loginMessage.textContent += ` (${appState.schoolName})`;
@@ -3780,9 +3789,13 @@ function initializeDashboard() {
             renderTeacherControls();
             renderTeacherDashboard();
         }
-        else if (appState.role === 'Parent') {
+        else if (isParentRole(appState.role)) {
             renderParentControls();
             switchView('parent-dashboard-view');
+            if (!appState.activeStudentId && Array.isArray(appState.allStudents) && appState.allStudents.length > 0) {
+                const linkedStudent = appState.allStudents.find(s => (s.role || '').toLowerCase() === 'student');
+                appState.activeStudentId = linkedStudent ? (linkedStudent.id || linkedStudent.student_id || null) : null;
+            }
             if (appState.activeStudentId) {
                 const childIdInput = document.getElementById('parent-child-id');
                 if (childIdInput)
@@ -6421,7 +6434,7 @@ function loadLiveClasses() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let url = '/classes/upcoming';
-            if (appState.role === 'Parent' && appState.activeStudentId) {
+            if (isParentRole(appState.role) && appState.activeStudentId) {
                 url += `?student_id=${appState.activeStudentId}`;
             }
             const response = yield fetchAPI(url);

@@ -1939,16 +1939,6 @@ def initialize_db():
     except Exception:
         conn.rollback()
     try:
-        for user_id, password in STUDENT_PASSWORD_OVERRIDES.items():
-            cursor.execute(
-                "UPDATE students SET password = ?, email_verified = TRUE WHERE LOWER(id) = LOWER(?)",
-                (password, user_id),
-            )
-        for user_id, password in PARENT_PASSWORD_OVERRIDES.items():
-            cursor.execute(
-                "UPDATE students SET password = ?, email_verified = TRUE WHERE LOWER(id) = LOWER(?)",
-                (password, user_id),
-            )
         cursor.execute(
             "UPDATE guardians SET email = ? WHERE LOWER(student_id) = LOWER(?)",
             ("theclassiccrew.careers@gmail.com", "student_g1_1"),
@@ -6433,21 +6423,30 @@ async def login_user(request: LoginRequest):
     ):
         lookup_username = "rootadmin" if request.role.strip() == "Root_Super_Admin" else "admin"
     else:
-        alias_candidates = STUDENT_LOGIN_ALIASES.get(username_lower) or PARENT_LOGIN_ALIASES.get(username_lower)
-        if alias_candidates:
-            if isinstance(alias_candidates, str):
-                alias_candidates = (alias_candidates,)
-            lookup_username = username_clean
-            for candidate_id in alias_candidates:
-                found_alias_user = cursor.execute(
-                    "SELECT id FROM students WHERE LOWER(id) = LOWER(?)",
-                    (candidate_id,),
-                ).fetchone()
-                if found_alias_user:
-                    lookup_username = found_alias_user["id"]
-                    break
+        # Prefer exact identifier match first. This prevents alias IDs from shadowing
+        # direct email-based accounts when both records exist in legacy datasets.
+        exact_user = cursor.execute(
+            "SELECT id FROM students WHERE LOWER(id) = LOWER(?)",
+            (username_clean,),
+        ).fetchone()
+        if exact_user:
+            lookup_username = exact_user["id"]
         else:
-            lookup_username = username_clean
+            alias_candidates = STUDENT_LOGIN_ALIASES.get(username_lower) or PARENT_LOGIN_ALIASES.get(username_lower)
+            if alias_candidates:
+                if isinstance(alias_candidates, str):
+                    alias_candidates = (alias_candidates,)
+                lookup_username = username_clean
+                for candidate_id in alias_candidates:
+                    found_alias_user = cursor.execute(
+                        "SELECT id FROM students WHERE LOWER(id) = LOWER(?)",
+                        (candidate_id,),
+                    ).fetchone()
+                    if found_alias_user:
+                        lookup_username = found_alias_user["id"]
+                        break
+            else:
+                lookup_username = username_clean
     # Case-insensitive username lookup
     user = cursor.execute(
         "SELECT id, name, password, role, failed_login_attempts, locked_until, is_super_admin, school_id, email_verified FROM students WHERE LOWER(id) = LOWER(?)",
@@ -6474,33 +6473,6 @@ async def login_user(request: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials.")
 
     auth_user_id = user["id"]
-    desired_password = None
-    if username_lower in STUDENT_PASSWORD_OVERRIDES:
-        desired_password = STUDENT_PASSWORD_OVERRIDES[username_lower]
-    elif auth_user_id in STUDENT_PASSWORD_OVERRIDES:
-        desired_password = STUDENT_PASSWORD_OVERRIDES[auth_user_id]
-    elif username_lower in PARENT_PASSWORD_OVERRIDES:
-        desired_password = PARENT_PASSWORD_OVERRIDES[username_lower]
-    elif auth_user_id in PARENT_PASSWORD_OVERRIDES:
-        desired_password = PARENT_PASSWORD_OVERRIDES[auth_user_id]
-
-    # Keep requested student credential override consistent for legacy IDs.
-    if desired_password and user["password"] != desired_password:
-        try:
-            cursor.execute(
-                "UPDATE students SET password = ?, email_verified = TRUE WHERE id = ?",
-                (desired_password, auth_user_id),
-            )
-            conn.commit()
-            refreshed_user = cursor.execute(
-                "SELECT id, name, password, role, failed_login_attempts, locked_until, is_super_admin, school_id, email_verified FROM students WHERE LOWER(id) = LOWER(?)",
-                (auth_user_id,),
-            ).fetchone()
-            if refreshed_user:
-                user = refreshed_user
-        except Exception:
-            conn.rollback()
-
     login_email = None
     if "@" in auth_user_id:
         login_email = auth_user_id
