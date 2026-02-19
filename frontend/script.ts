@@ -4,7 +4,7 @@
 // On localhost: uses explicit 'http://127.0.0.1:8000/api'
 const API_BASE_URL = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:')
     ? 'http://127.0.0.1:8000/api'
-    : 'https://classbridge-backend-bqj3.onrender.com/api'; // Point to Render Backend explicitly
+    : 'https://deploy-backend-2-yr70.onrender.com/api'; // Point to Render Backend explicitly
 
 // Check if running from file:// which breaks OAuth
 if (window.location.protocol === 'file:') {
@@ -6741,7 +6741,7 @@ let whiteboardManager = {
 
         // Explicit override if needed based on API_BASE_URL logic
         if (API_BASE_URL.includes('onrender')) {
-            wsUrl = 'wss://classbridge-backend-bqj3.onrender.com/ws/whiteboard';
+            wsUrl = 'wss://deploy-backend-2-yr70.onrender.com/ws/whiteboard';
         }
 
         this.socket = new WebSocket(wsUrl);
