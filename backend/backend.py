@@ -493,17 +493,19 @@ if USE_POSTGRES:
         hostname = parsed.hostname
         
         if hostname:
-            # Resolve to IPv4
-            ip_address = socket.gethostbyname(hostname)
-            print(f"Resolved {hostname} to IPv4: {ip_address}")
-            
-            # Reconstruct URL with IP
-            # Note: We must handle the auth part carefully. 
-            # urlparse.netloc includes user:pass@host:port. 
-            # We can't simply replace netloc because we lose auth.
-            
-            # Simple string replacement of the host part is safer if unique
-            DATABASE_URL = DATABASE_URL_ENV.replace(hostname, ip_address)
+            # FORCE IPv4 resolution
+            # getaddrinfo with AF_INET forces IPv4
+            # (family, type, proto, canonname, sockaddr)
+            info = socket.getaddrinfo(hostname, 5432, family=socket.AF_INET, proto=socket.IPPROTO_TCP)
+            if info:
+                 # Pick the first IPv4 address found
+                ip_address = info[0][4][0]
+                print(f"Resolved {hostname} to IPv4: {ip_address}")
+                # Simple string replacement of the host part
+                DATABASE_URL = DATABASE_URL_ENV.replace(hostname, ip_address)
+            else:
+                 print(f"Could not resolve {hostname} to IPv4")
+                 DATABASE_URL = DATABASE_URL_ENV
         else:
             DATABASE_URL = DATABASE_URL_ENV
             
