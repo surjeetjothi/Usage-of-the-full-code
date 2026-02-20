@@ -529,12 +529,17 @@ app = FastAPI(title="EdTech AI Portal API - Enhanced", lifespan=lifespan)
 origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "null",
-    # Render backend URLs (for self-referencing or testing)
+    # ── Render — Production URLs ─────────────────────────────────────────
+    "https://classbridge-rswq.onrender.com",           # Backend
+    "https://classbridge-frontend-qrv2.onrender.com",  # Frontend
+    # ── Legacy / Old URLs ────────────────────────────────────────────────
     "https://classbridge-backend-bqj3.onrender.com",
     "https://classbridge-backend-f82j.onrender.com",
     "https://backend-files-deployment.onrender.com",
-    # Frontend (Vercel)
+    # ── Vercel Frontend ──────────────────────────────────────────────────
     "https://ed-tech-portal.vercel.app",
     "https://www.ed-tech-portal.vercel.app",
 ]
@@ -7111,7 +7116,7 @@ async def register_user(request: RegisterRequest):
         # Always use the live backend URL for the verification link (never localhost)
         live_backend = os.getenv("VERIFICATION_LINK_BASE", "").strip()
         if not live_backend or "127.0.0.1" in live_backend or "localhost" in live_backend:
-            live_backend = "https://backend-files-deployment.onrender.com"
+            live_backend = "https://classbridge-rswq.onrender.com"
         verification_link = f"{live_backend}/api/auth/verify-email?token={verification_token}"
 
         email_body = f"""
