@@ -15,3 +15,5 @@ sqlalchemy
 aiofiles
 bcrypt
 PyJWT
+
+email-validator
