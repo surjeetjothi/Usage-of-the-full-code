@@ -474,6 +474,7 @@ origins = [
     "http://127.0.0.1:8000",
     "null",
     "https://classbridge-backend-bqj3.onrender.com",
+    "https://classbridge-backend-f82j.onrender.com",
     "https://ed-tech-portal.vercel.app",
     "https://www.ed-tech-portal.vercel.app",
 ]
