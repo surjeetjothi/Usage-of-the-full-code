@@ -28,7 +28,7 @@ services:
       - key: ALLOW_OTP_CONSOLE_FALLBACK
         value: "true"
       - key: VERIFICATION_LINK_BASE
-        value: "https://classbridge-backend.onrender.com"
+        value: "https://backend-files-deployment.onrender.com"
       - key: ADMIN_LOGIN_EMAIL
         sync: false
       - key: ADMIN_LOGIN_PASSWORD

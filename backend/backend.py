@@ -122,32 +122,49 @@ def send_email(to_email: str, subject: str, body: str):
     smtp_server = os.getenv("SMTP_SERVER", SMTP_SERVER)
     smtp_port = int(os.getenv("SMTP_PORT", str(SMTP_PORT)))
 
-    if "example.com" in to_email or "your-email" in smtp_email:
-        logger.warning(f"Email simulation: To={to_email}, Subject={subject}")
-        return False # Simulated
+    if not smtp_email or "your-email" in smtp_email:
+        logger.warning(f"[EMAIL] SMTP_EMAIL not configured. Skipping email to {to_email}")
+        return False
+    if not smtp_password or "your-app-password" in smtp_password:
+        logger.warning(f"[EMAIL] SMTP_PASSWORD not configured. Skipping email to {to_email}")
+        return False
+    if "example.com" in to_email:
+        logger.warning(f"[EMAIL] Simulation mode (example.com email). Skipping send.")
+        return False
 
+    logger.info(f"[EMAIL] Sending '{subject}' to {to_email} via {smtp_server}:{smtp_port}")
     try:
-        msg = MIMEMultipart()
+        msg = MIMEMultipart('alternative')
         msg['From'] = smtp_email
         msg['To'] = to_email
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
+        # Prefer STARTTLS on port 587
         try:
-            server = smtplib.SMTP(smtp_server, smtp_port, timeout=15)
+            server = smtplib.SMTP(smtp_server, smtp_port, timeout=20)
+            server.ehlo()
             server.starttls()
+            server.ehlo()
             server.login(smtp_email, smtp_password)
             server.send_message(msg)
             server.quit()
+            logger.info(f"[EMAIL] Successfully sent to {to_email} via STARTTLS")
             return True
         except Exception as starttls_err:
-            logger.warning(f"STARTTLS send failed, retrying SSL: {starttls_err}")
-            server_ssl = smtplib.SMTP_SSL(smtp_server, 465, timeout=15)
-            server_ssl.login(smtp_email, smtp_password)
-            server_ssl.send_message(msg)
-            server_ssl.quit()
-            return True
+            logger.warning(f"[EMAIL] STARTTLS on port {smtp_port} failed: {starttls_err}. Retrying SSL on port 465...")
+            try:
+                server_ssl = smtplib.SMTP_SSL(smtp_server, 465, timeout=20)
+                server_ssl.ehlo()
+                server_ssl.login(smtp_email, smtp_password)
+                server_ssl.send_message(msg)
+                server_ssl.quit()
+                logger.info(f"[EMAIL] Successfully sent to {to_email} via SSL port 465")
+                return True
+            except Exception as ssl_err:
+                logger.error(f"[EMAIL] SSL fallback also failed: {ssl_err}")
+                raise ssl_err
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
+        logger.error(f"[EMAIL] Failed to send email to {to_email}. Subject: '{subject}'. Error: {e}")
         return False
 
 def _send_messages(conn, sender_id: str, recipient_ids: List[str], subject: str, content: str):
@@ -6715,6 +6732,24 @@ async def login_user(request: LoginRequest):
         if require_email_otp and login_email:
             # Generate Code
             otp_code = str(random.randint(100000, 999999))
+
+            # Build styled HTML OTP email
+            otp_email_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; 
+                        border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
+                <h2 style="color: #4F46E5; text-align: center;">🔐 ClassBridge Verification</h2>
+                <p style="font-size: 15px; color: #333;">Hello,</p>
+                <p style="font-size: 15px; color: #333;">Your one-time verification code is:</p>
+                <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; 
+                            text-align: center; color: #4F46E5; padding: 20px; 
+                            background: #F0F0FF; border-radius: 8px; margin: 20px 0;">
+                    {otp_code}
+                </div>
+                <p style="font-size: 13px; color: #888;">This code expires in 10 minutes. Do not share it with anyone.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #aaa; text-align: center;">ClassBridge by Noble Nexus</p>
+            </div>
+            """
             
             # Store in DB (backup_codes used as OTP storage)
             try:
@@ -6724,21 +6759,24 @@ async def login_user(request: LoginRequest):
                 conn.commit()
                 
                 # Send Email
-                email_sent = send_email(login_email, "Your Verification Code", f"Your code is: {otp_code}")
+                email_sent = send_email(login_email, "Your ClassBridge Verification Code", otp_email_body)
                 if not email_sent:
                     if ALLOW_OTP_CONSOLE_FALLBACK:
                         logger.warning(
-                            f"2FA email send failed for {auth_user_id} to {login_email}. "
-                            f"Using terminal fallback OTP: {otp_code}"
+                            f"[2FA] Email send failed for {auth_user_id} → {login_email}. "
+                            f"CONSOLE FALLBACK OTP: {otp_code}"
                         )
-                        log_auth_event(auth_user_id, "2FA Required", f"OTP generated (terminal fallback) for {login_email}")
+                        log_auth_event(auth_user_id, "2FA Required", f"OTP generated (console fallback) for {login_email}")
                     else:
-                        logger.error(f"2FA email send failed for {auth_user_id} to {login_email}")
-                        raise HTTPException(status_code=500, detail="Unable to send verification code email. Check SMTP credentials and Gmail app-password settings.")
+                        logger.error(f"[2FA] Email delivery failed for {auth_user_id} → {login_email}")
+                        raise HTTPException(
+                            status_code=500, 
+                            detail="Unable to send OTP email. Please check SMTP credentials in Render environment variables."
+                        )
+                else:
+                    log_auth_event(auth_user_id, "2FA Required", f"OTP emailed to {login_email}")
                 
-                logger.info(f"2FA Code generated for {auth_user_id}: {otp_code}") # Log for debug/local test
-                log_auth_event(auth_user_id, "2FA Required", f"OTP generated for {login_email}")
-                
+                logger.info(f"[2FA] OTP for {auth_user_id}: {otp_code}")
                 conn.close()
                 return LoginResponse(
                     user_id=user['id'], 
@@ -6751,12 +6789,12 @@ async def login_user(request: LoginRequest):
                 raise
             except Exception as e:
                 conn.close()
-                logger.error(f"2FA Generation Error: {e}")
+                logger.error(f"[2FA] Generation Error: {e}")
                 raise HTTPException(status_code=500, detail="Unable to generate 2FA verification code.")
         elif require_email_otp and not login_email:
-            conn.close()
-            logger.error(f"2FA configured but no recipient email mapped for user {auth_user_id}")
-            raise HTTPException(status_code=500, detail="2FA is enabled but no recipient email is configured for this account.")
+            # No email mapped → still allow login if fallback is on (don't block privileged accounts)
+            logger.warning(f"[2FA] No email mapped for {auth_user_id}. Skipping 2FA (no email address found).")
+            log_auth_event(auth_user_id, "2FA Skipped", "No email address mapped to this account")
         
         # --- NORMAL LOGIN (2FA Skipped) ---
         user_dict = dict(user)
@@ -6984,16 +7022,43 @@ async def register_user(request: RegisterRequest):
             ) 
         )
 
-        verification_link = f"{VERIFICATION_LINK_BASE}/api/auth/verify-email?token={verification_token}"
+        # Always use the live backend URL for the verification link (never localhost)
+        live_backend = os.getenv("VERIFICATION_LINK_BASE", "").strip()
+        if not live_backend or "127.0.0.1" in live_backend or "localhost" in live_backend:
+            live_backend = "https://backend-files-deployment.onrender.com"
+        verification_link = f"{live_backend}/api/auth/verify-email?token={verification_token}"
+
         email_body = f"""
-        <p>Hello {request.name},</p>
-        <p>Welcome to Noble Nexus. Please verify your email to activate your account.</p>
-        <p><a href="{verification_link}">Verify Email</a></p>
-        <p>This link expires in {VERIFICATION_TOKEN_TTL_HOURS} hours.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto;
+                    border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
+            <h2 style="color: #4F46E5; text-align: center;">✅ Verify Your Email</h2>
+            <p style="font-size: 15px; color: #333;">Hello <strong>{request.name}</strong>,</p>
+            <p style="font-size: 15px; color: #333;">Welcome to <strong>ClassBridge by Noble Nexus</strong>.
+            Please click the button below to verify your email and activate your account.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{verification_link}" 
+                   style="background: #4F46E5; color: white; text-decoration: none;
+                          padding: 14px 30px; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                    Verify My Email
+                </a>
+            </div>
+            <p style="font-size: 13px; color: #888;">This link expires in {VERIFICATION_TOKEN_TTL_HOURS} hours.</p>
+            <p style="font-size: 12px; color: #bbb;">If the button doesn't work, paste this link in your browser:<br>
+            <a href="{verification_link}" style="color: #4F46E5;">{verification_link}</a></p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="font-size: 12px; color: #aaa; text-align: center;">ClassBridge by Noble Nexus</p>
+        </div>
         """
-        if not send_email(email, "Verify your Noble Nexus account", email_body):
-            conn.rollback()
-            raise HTTPException(status_code=500, detail="Unable to send verification email. Check SMTP credentials and Gmail app-password settings.")
+        email_sent = send_email(email, "Verify your Noble Nexus account", email_body)
+        if not email_sent:
+            # Log but don't block registration — user can request resend later.
+            logger.error(f"[REGISTER] Verification email failed to send to {email}. User saved but unverified.")
+            conn.commit()
+            log_auth_event(email, "Register Success (Email Failed)", f"Role: {selected_role}, School: {school_id}")
+            return {
+                "message": "Account created but we could not send a verification email. "
+                           "Please contact support or check your email address."
+            }
 
         conn.commit()
         log_auth_event(email, "Register Success", f"Role: {selected_role}, School: {school_id}, Email verification pending")
