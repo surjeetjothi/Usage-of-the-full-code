@@ -51,7 +51,7 @@ services:
       # ── Verification link ────────────────────────────────────────────────
       # This MUST match the Render backend service URL exactly (no trailing slash)
       - key: VERIFICATION_LINK_BASE
-        value: "https://classbridge-backend.onrender.com"
+        value: "https://classbridge-rswq.onrender.com"
 
       # ── Admin credentials ────────────────────────────────────────────────
       - key: ADMIN_LOGIN_EMAIL
