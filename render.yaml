@@ -40,6 +40,18 @@ services:
       - key: SMTP_PASSWORD
         sync: false          # ← Gmail App Password — set in Render Dashboard
 
+      # ── Resend API (RECOMMENDED for Render — replaces Gmail SMTP) ────────────
+      # Gmail SMTP is often blocked on cloud IPs. Resend works reliably.
+      # 1. Sign up free at https://resend.com
+      # 2. Go to API Keys → Create API Key
+      # 3. Add your domain (noblenexus-ie.com) in Resend → Domains
+      # 4. Set RESEND_API_KEY below in Render Dashboard → Environment
+      - key: RESEND_API_KEY
+        sync: false          # ← Set in Render Dashboard → Environment
+      - key: RESEND_FROM_EMAIL
+        value: "info@noblenexus-ie.com"
+
+
       # ── 2FA / OTP ────────────────────────────────────────────────────────
       # Set to "true" ONLY after confirming emails arrive in inbox.
       - key: ENABLE_2FA

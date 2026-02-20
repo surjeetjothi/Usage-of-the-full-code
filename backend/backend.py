@@ -117,29 +117,69 @@ PARENT_OTP_EMAIL_OVERRIDES = {
 }
 
 def send_email(to_email: str, subject: str, body: str):
+    """
+    Send an email using Resend API (preferred for cloud/Render) or Gmail SMTP fallback.
+
+    Priority:
+      1. Resend API  — set RESEND_API_KEY in Render env vars (free at resend.com)
+      2. Gmail SMTP  — used if RESEND_API_KEY is not set (may be blocked on cloud)
+    """
     smtp_email = os.getenv("SMTP_EMAIL", SMTP_EMAIL)
     smtp_password = os.getenv("SMTP_PASSWORD", SMTP_PASSWORD).replace(" ", "")
     smtp_server = os.getenv("SMTP_SERVER", SMTP_SERVER)
-    smtp_port = int(os.getenv("SMTP_PORT", str(SMTP_PORT)))
+    smtp_port   = int(os.getenv("SMTP_PORT", str(SMTP_PORT)))
+    resend_api_key = os.getenv("RESEND_API_KEY", "")
+    resend_from    = os.getenv("RESEND_FROM_EMAIL", smtp_email)  # e.g. info@noblenexus-ie.com
 
     if not smtp_email or "your-email" in smtp_email:
         logger.warning(f"[EMAIL] SMTP_EMAIL not configured. Skipping email to {to_email}")
-        return False
-    if not smtp_password or "your-app-password" in smtp_password:
-        logger.warning(f"[EMAIL] SMTP_PASSWORD not configured. Skipping email to {to_email}")
         return False
     if "example.com" in to_email:
         logger.warning(f"[EMAIL] Simulation mode (example.com email). Skipping send.")
         return False
 
-    logger.info(f"[EMAIL] Sending '{subject}' to {to_email} via {smtp_server}:{smtp_port}")
+    # ── 1. Try Resend API first (works on Render/AWS without SMTP restrictions) ──
+    if resend_api_key and resend_api_key not in ("", "your-resend-api-key"):
+        logger.info(f"[EMAIL] Using Resend API to send '{subject}' to {to_email}")
+        try:
+            import requests as _requests
+            resp = _requests.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": f"ClassBridge <{resend_from}>",
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": body,
+                },
+                timeout=15,
+            )
+            if resp.status_code in (200, 201):
+                logger.info(f"[EMAIL] Resend API: Successfully sent to {to_email}")
+                return True
+            else:
+                logger.error(f"[EMAIL] Resend API error {resp.status_code}: {resp.text}")
+                # Fall through to SMTP
+        except Exception as resend_err:
+            logger.warning(f"[EMAIL] Resend API failed: {resend_err}. Falling back to SMTP...")
+
+    # ── 2. SMTP fallback (Gmail / Google Workspace) ───────────────────────────
+    if not smtp_password or "your-app-password" in smtp_password:
+        logger.warning(f"[EMAIL] SMTP_PASSWORD not configured. Skipping email to {to_email}")
+        return False
+
+    logger.info(f"[EMAIL] Using SMTP to send '{subject}' to {to_email} via {smtp_server}:{smtp_port}")
     try:
         msg = MIMEMultipart('alternative')
         msg['From'] = smtp_email
         msg['To'] = to_email
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
-        # Prefer STARTTLS on port 587
+
+        # Try STARTTLS (port 587) first
         try:
             server = smtplib.SMTP(smtp_server, smtp_port, timeout=20)
             server.ehlo()
@@ -148,23 +188,23 @@ def send_email(to_email: str, subject: str, body: str):
             server.login(smtp_email, smtp_password)
             server.send_message(msg)
             server.quit()
-            logger.info(f"[EMAIL] Successfully sent to {to_email} via STARTTLS")
+            logger.info(f"[EMAIL] SMTP STARTTLS: Successfully sent to {to_email}")
             return True
         except Exception as starttls_err:
-            logger.warning(f"[EMAIL] STARTTLS on port {smtp_port} failed: {starttls_err}. Retrying SSL on port 465...")
+            logger.warning(f"[EMAIL] STARTTLS port {smtp_port} failed: {starttls_err}. Retrying SSL port 465...")
             try:
                 server_ssl = smtplib.SMTP_SSL(smtp_server, 465, timeout=20)
                 server_ssl.ehlo()
                 server_ssl.login(smtp_email, smtp_password)
                 server_ssl.send_message(msg)
                 server_ssl.quit()
-                logger.info(f"[EMAIL] Successfully sent to {to_email} via SSL port 465")
+                logger.info(f"[EMAIL] SMTP SSL port 465: Successfully sent to {to_email}")
                 return True
             except Exception as ssl_err:
-                logger.error(f"[EMAIL] SSL fallback also failed: {ssl_err}")
+                logger.error(f"[EMAIL] SMTP SSL fallback also failed: {ssl_err}")
                 raise ssl_err
     except Exception as e:
-        logger.error(f"[EMAIL] Failed to send email to {to_email}. Subject: '{subject}'. Error: {e}")
+        logger.error(f"[EMAIL] All email delivery attempts failed for {to_email}. Error: {e}")
         return False
 
 def _send_messages(conn, sender_id: str, recipient_ids: List[str], subject: str, content: str):
