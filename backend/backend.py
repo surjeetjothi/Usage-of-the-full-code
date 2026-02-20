@@ -484,7 +484,33 @@ origins = [
 DATABASE_URL_ENV = os.getenv("DATABASE_URL", "class_bridge.db")
 USE_POSTGRES = os.getenv("USE_POSTGRES", "false").lower() == "true" or "postgres" in DATABASE_URL_ENV.lower()
 if USE_POSTGRES:
-    DATABASE_URL = DATABASE_URL_ENV
+    try:
+        import socket
+        from urllib.parse import urlparse, urlunparse
+        
+        # Parse the URL
+        parsed = urlparse(DATABASE_URL_ENV)
+        hostname = parsed.hostname
+        
+        if hostname:
+            # Resolve to IPv4
+            ip_address = socket.gethostbyname(hostname)
+            print(f"Resolved {hostname} to IPv4: {ip_address}")
+            
+            # Reconstruct URL with IP
+            # Note: We must handle the auth part carefully. 
+            # urlparse.netloc includes user:pass@host:port. 
+            # We can't simply replace netloc because we lose auth.
+            
+            # Simple string replacement of the host part is safer if unique
+            DATABASE_URL = DATABASE_URL_ENV.replace(hostname, ip_address)
+        else:
+            DATABASE_URL = DATABASE_URL_ENV
+            
+    except Exception as e:
+        print(f"DNS Resolution failed, using original URL: {e}")
+        DATABASE_URL = DATABASE_URL_ENV
+
     SQLITE_DB_PATH = None
 else:
     DATABASE_URL = DATABASE_URL_ENV
