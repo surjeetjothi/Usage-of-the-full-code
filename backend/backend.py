@@ -1465,8 +1465,15 @@ def get_db_engine():
     global ENGINE
     if ENGINE is None:
         # Use the same DB target as get_db_connection
-        db_path = SQLITE_DB_PATH or os.path.join(os.path.dirname(os.path.abspath(__file__)), "class_bridge.db")
-        ENGINE = create_engine(f"sqlite:///{db_path}")
+        if USE_POSTGRES and DATABASE_URL and "postgres" in DATABASE_URL.lower():
+            # SQLAlchemy handles postgresql:// naturally, but sometimes postgres:// needs a fix
+            url = DATABASE_URL
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql://", 1)
+            ENGINE = create_engine(url)
+        else:
+            db_path = SQLITE_DB_PATH or os.path.join(os.path.dirname(os.path.abspath(__file__)), "class_bridge.db")
+            ENGINE = create_engine(f"sqlite:///{db_path}")
     return ENGINE
 
 def fetch_data_df(query, params=()):
@@ -1474,7 +1481,8 @@ def fetch_data_df(query, params=()):
     try:
         engine = get_db_engine()
         # Fix for Postgres: Replace '?' with '%s' because we use ? style in the codebase
-        # query = query.replace('?', '%s') # Not needed for SQLite
+        if USE_POSTGRES and "postgres" in str(engine.url).lower():
+            query = query.replace("?", "%s")
         
         # pd.read_sql_query supports params with SQLAlchemy engine
         df = pd.read_sql_query(query, engine, params=params)
