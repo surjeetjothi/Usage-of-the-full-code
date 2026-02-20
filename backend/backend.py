@@ -534,7 +534,20 @@ if USE_POSTGRES:
             os.environ["RBAC_DATABASE_URL"] = DATABASE_URL
             
         else:
+            # Fallback (User provided manual URL, possibly a pooler URL)
             DATABASE_URL = DATABASE_URL_ENV
+            
+            # SMART AUTO-FIX: If user manually set a Supabase Pooler URL with Port 5432, 
+            # and we are in an IPv4 environment (Render), it might fail with "Tenant not found".
+            # We automatically switch to Port 6543 (Transaction Mode) which is more robust for IPv4.
+            if "pooler.supabase.com" in DATABASE_URL and ":5432" in DATABASE_URL:
+                print("Detected Supabase Pooler on Port 5432. Switching to Port 6543 (Transaction Mode) for better IPv4 compatibility...")
+                DATABASE_URL = DATABASE_URL.replace(":5432", ":6543")
+                
+            # Ensure SSL is required for pooler
+            if "pooler.supabase.com" in DATABASE_URL and "sslmode=" not in DATABASE_URL:
+                sep = "&" if "?" in DATABASE_URL else "?"
+                DATABASE_URL += f"{sep}sslmode=require"
             
     except Exception as e:
         print(f"Supabase Logic Error: {e}")
