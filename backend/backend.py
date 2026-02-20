@@ -485,96 +485,59 @@ DATABASE_URL_ENV = os.getenv("DATABASE_URL", "class_bridge.db")
 USE_POSTGRES = os.getenv("USE_POSTGRES", "false").lower() == "true" or "postgres" in DATABASE_URL_ENV.lower()
 if USE_POSTGRES:
     try:
-        # SUPABASE IPv4 FIX
-        # The direct 'db.[ref].supabase.co' hostname often lacks an A record (IPv4), causing failure in IPv4-only environments.
-        # We must switch to the regional connection pooler which supports IPv4.
-        
+        # SUPABASE IPv4 FIX (SIMPLIFIED)
         # 1. Detect Project Ref
         match = re.search(r"db\.([a-z0-9]+)\.supabase\.co", DATABASE_URL_ENV)
         if match:
             project_ref = match.group(1)
             print(f"Detected Supabase Project Ref: {project_ref}")
             
-            # Auto-detect region by trying ALL common Supabase regions with Port 6543 (IPv4 Transaction Mode)
-            # Port 6543 is critical for IPv4 connectivity via the pooler.
-            pooler_regions = [
-                # Asia
-                "aws-0-ap-south-1.pooler.supabase.com",      # Mumbai
-                "aws-0-ap-southeast-1.pooler.supabase.com",  # Singapore
-                "aws-0-ap-northeast-1.pooler.supabase.com",  # Tokyo
-                "aws-0-ap-northeast-2.pooler.supabase.com",  # Seoul
-                "aws-0-ap-southeast-2.pooler.supabase.com",  # Sydney
-                # US/Americas
-                "aws-0-us-east-1.pooler.supabase.com",       # N. Virginia
-                "aws-0-us-west-1.pooler.supabase.com",       # N. California
-                "aws-0-us-west-2.pooler.supabase.com",       # Oregon
-                "aws-0-sa-east-1.pooler.supabase.com",       # Sao Paulo
-                "aws-0-ca-central-1.pooler.supabase.com",    # Canada
-                # Europe
-                "aws-0-eu-central-1.pooler.supabase.com",    # Frankfurt
-                "aws-0-eu-west-1.pooler.supabase.com",       # Ireland
-                "aws-0-eu-west-2.pooler.supabase.com",       # London
-                "aws-0-eu-west-3.pooler.supabase.com",       # Paris
-            ]
+            # 2. Try Default US-East-1 Pooler (Most common)
+            # We use Session Mode (5432) for compatibility.
+            pooler_host = "aws-0-us-east-1.pooler.supabase.com"
             
-            found_working_pooler = False
+            # Construct Pooler URL
+            pooler_url = DATABASE_URL_ENV.replace(match.group(0), pooler_host)
             
+            # Fix Username: postgres -> postgres.ref
+            if "postgres:" in pooler_url and f"postgres.{project_ref}" not in pooler_url:
+                pooler_url = pooler_url.replace("postgres:", f"postgres.{project_ref}:")
+            
+            # Ensure SSL
+            if "sslmode=" not in pooler_url:
+                sep = "&" if "?" in pooler_url else "?"
+                pooler_url += f"{sep}sslmode=require"
+            
+            print(f"Attempting connection via US-East-1 Pooler: {pooler_host}...")
+            
+            # Test Connection
             try:
                 import psycopg2
-            except ImportError:
-                print("psycopg2 not found, skipping pooler auto-detection.")
-                pooler_regions = []
-
-            for region_host in pooler_regions:
-                try:
-                    # Construct candidate URL
-                    candidate_url = DATABASE_URL_ENV.replace(match.group(0), region_host)
-                    
-                    # SWITCH TO PORT 6543 (Transaction Mode) - Required for proper IPv4 pooling
-                    candidate_url = candidate_url.replace(":5432", ":6543")
-                    
-                    # Update username: 'postgres' -> 'postgres.[ref]'
-                    if "postgres:" in candidate_url and f"postgres.{project_ref}" not in candidate_url:
-                        candidate_url = candidate_url.replace("postgres:", f"postgres.{project_ref}:")
-                        
-                    # Add sslmode=require if missing (needed for pooler)
-                    if "sslmode=" not in candidate_url:
-                        sep = "&" if "?" in candidate_url else "?"
-                        candidate_url += f"{sep}sslmode=require"
-                    
-                    print(f"Testing Supabase connection via {region_host} (Port 6543)...")
-                    
-                    # Test connection fast
-                    conn = psycopg2.connect(candidate_url, connect_timeout=2)
-                    conn.close()
-                    
-                    # SUCCESS
-                    print(f"SUCCESS: Connected via {region_host}")
-                    DATABASE_URL = candidate_url
-                    found_working_pooler = True
-                    break
-                    
-                except Exception as e:
-                    # 'Tenant or user not found' = Wrong Region
-                    # 'Network is unreachable' = Blocked or Down
-                    pass # Silent fail to try next
-            
-            if not found_working_pooler:
-                print("Could not auto-detect correct Supabase region (checked 14 regions). Defaulting to original.")
+                conn = psycopg2.connect(pooler_url, connect_timeout=3)
+                conn.close()
+                print(f"SUCCESS: Connected via {pooler_host}")
+                DATABASE_URL = pooler_url
+            except Exception as e:
+                print(f"Auto-fix failed for {pooler_host}: {e}")
+                print("-" * 60)
+                print("MANUAL FIX REQUIRED:")
+                print("Your Supabase project is in a specific region (e.g., Singapore, Mumbai, Frankfurt).")
+                print("Render cannot connect via IPv6. You MUST obtain the 'Transaction Pooler' connection string")
+                print("from your Supabase Dashboard -> Settings -> Database -> Connection Pooling.")
+                print("Propagate it to Render's Environment Variable 'DATABASE_URL'.")
+                print("-" * 60)
+                # Fallback to original (will likely fail with IPv6 error, but we tried)
                 DATABASE_URL = DATABASE_URL_ENV
-            else:
-                 print(f"Supabase Auto-Configuration Complete.")
-            
-            # CRITICAL: Update env vars
+                
+            # Update Env Vars
             os.environ["DATABASE_URL"] = DATABASE_URL
             os.environ["RBAC_DATABASE_URL"] = DATABASE_URL
             
         else:
-            # Fallback
             DATABASE_URL = DATABASE_URL_ENV
             
     except Exception as e:
-        print(f"Supabase IPv4 Fix failed: {e}")
+        print(f"Supabase Logic Error: {e}")
         DATABASE_URL = DATABASE_URL_ENV
 
     SQLITE_DB_PATH = None
