@@ -540,6 +540,10 @@ if USE_POSTGRES:
         print(f"Supabase Logic Error: {e}")
         DATABASE_URL = DATABASE_URL_ENV
 
+    # ALWAYS sync RBAC connection string with main DB
+    os.environ["RBAC_DATABASE_URL"] = DATABASE_URL
+    print(f"Final Database Configuration: {DATABASE_URL.split('@')[-1]}") # Log host only for safety
+
     SQLITE_DB_PATH = None
 else:
     DATABASE_URL = DATABASE_URL_ENV
