@@ -636,6 +636,54 @@ async def root():
     return {"message": "ClassBridge API is running. Visit /docs for API docs."}
 
 
+# ── SMTP Debug Endpoints (safe — only shows masked info, no secrets) ──
+@app.get("/api/debug/smtp-status", tags=["Debug"])
+async def smtp_status():
+    """Check what SMTP credentials are loaded (no passwords exposed)."""
+    smtp_email = os.getenv("SMTP_EMAIL", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = os.getenv("SMTP_PORT", "587")
+    enable_2fa = os.getenv("ENABLE_2FA", "false")
+    return {
+        "smtp_email": smtp_email or "NOT SET",
+        "smtp_password_set": bool(smtp_password and "your-app-password" not in smtp_password),
+        "smtp_password_length": len(smtp_password),
+        "smtp_server": smtp_server,
+        "smtp_port": smtp_port,
+        "enable_2fa": enable_2fa,
+        "allow_otp_fallback": os.getenv("ALLOW_OTP_CONSOLE_FALLBACK", "false"),
+    }
+
+@app.get("/api/debug/test-email", tags=["Debug"])
+async def test_email(to: str):
+    """Send a test email. Usage: /api/debug/test-email?to=your@email.com"""
+    if not to or "@" not in to:
+        raise HTTPException(status_code=400, detail="Provide a valid email via ?to=email@example.com")
+    body = """
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;
+                border:1px solid #e0e0e0;border-radius:10px;padding:30px;">
+        <h2 style="color:#4F46E5;text-align:center;">✅ ClassBridge SMTP Test</h2>
+        <p style="font-size:15px;color:#333;">This is a test email from ClassBridge backend.</p>
+        <p style="font-size:15px;color:#333;">If you received this, your SMTP configuration is working correctly! 🎉</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+        <p style="font-size:12px;color:#aaa;text-align:center;">ClassBridge by Noble Nexus</p>
+    </div>
+    """
+    success = send_email(to, "ClassBridge SMTP Test", body)
+    if success:
+        return {"status": "sent", "to": to, "message": "Test email sent successfully! Check your inbox (and spam folder)."}
+    smtp_email = os.getenv("SMTP_EMAIL", "")
+    smtp_pwd = os.getenv("SMTP_PASSWORD", "")
+    return {
+        "status": "failed",
+        "to": to,
+        "smtp_email_set": bool(smtp_email),
+        "smtp_password_set": bool(smtp_pwd),
+        "smtp_password_length": len(smtp_pwd),
+        "message": "Email failed to send. Check Render logs for the detailed error.",
+    }
+
 MIN_ACTIVITIES = 5 
 
 DB_SCHEMA_CONTEXT = """
@@ -6719,14 +6767,10 @@ async def login_user(request: LoginRequest):
 
         # --- 2FA / EMAIL OTP FLOW ---
         ENABLE_2FA = os.getenv("ENABLE_2FA", "false").lower() == "true"
-        require_email_otp = (
-            ENABLE_2FA
-            or auth_user_id in ("teacher", "admin")
-            or username_lower in STUDENT_LOGIN_ALIASES
-            or auth_user_id in STUDENT_OTP_EMAIL_OVERRIDES
-            or username_lower in PARENT_LOGIN_ALIASES
-            or auth_user_id in PARENT_OTP_EMAIL_OVERRIDES
-        )
+        # 2FA only triggers when explicitly enabled via env var AND a recipient email exists.
+        # Do NOT hardcode specific users — use ENABLE_2FA=true in Render env to turn on globally.
+        require_email_otp = bool(ENABLE_2FA and login_email)
+        logger.info(f"[2FA] user={auth_user_id} ENABLE_2FA={ENABLE_2FA} login_email={login_email} require_otp={require_email_otp}")
 
         # Trigger email OTP when enabled (or privileged account) and recipient email exists.
         if require_email_otp and login_email:
