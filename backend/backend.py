@@ -679,12 +679,43 @@ class PostgresConnectionWrapper:
     def __init__(self, dsn):
         if not load_psycopg2():
             raise RuntimeError("Postgres requested but psycopg2 is not available.")
+        
+        # Parse DSN to extract hostname for resolution
         try:
-            # Force IPv4 resolution manually again just to be safe, or assume dsn already has IP
-            # But we also add connect_timeout
-            self.conn = psycopg2.connect(dsn, cursor_factory=DictCursor, connect_timeout=10)
+            from urllib.parse import urlparse
+            import socket
+            parsed = urlparse(dsn)
+            hostname = parsed.hostname
+            ip_address = None
+            
+            if hostname:
+                # Resolve IPv4
+                try:
+                    info = socket.getaddrinfo(hostname, 5432, family=socket.AF_INET, proto=socket.IPPROTO_TCP)
+                    if info:
+                        ip_address = info[0][4][0]
+                        print(f"Resolved {hostname} to IPv4 for connection: {ip_address}")
+                except Exception as e:
+                    logger.warning(f"Failed to resolve IPv4 for {hostname}: {e}")
+
+            # Prepare connection arguments
+            conn_args = {
+                "dsn": dsn,
+                "cursor_factory": DictCursor,
+                "connect_timeout": 10,
+                # "sslmode": "require" # Supabase needs this, usually in DSN
+            }
+            
+            # If we have an IP, force it using hostaddr
+            if ip_address:
+                conn_args["hostaddr"] = ip_address
+                # We KEEP the original dsn (with hostname) so SSL validation works!
+                # hostaddr overrides the DNS lookup but libpq uses the DSN hostname for cert verification.
+            
+            self.conn = psycopg2.connect(**conn_args)
+            
         except Exception as e:
-            logger.error(f"DB Connection Error: {e}")
+            logger.error(f"DB Connection Error (DSN: {dsn}): {e}")
             raise e
         self.row_factory = None # Stub
 
