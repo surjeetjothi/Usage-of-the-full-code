@@ -503,7 +503,7 @@ IS_PRODUCTION = os.getenv("RENDER") == "true" or (USE_POSTGRES and "postgres" in
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app" if IS_PRODUCTION else None,
+    allow_origin_regex=r"https://.*\.(vercel\.app|onrender\.com)" if IS_PRODUCTION else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

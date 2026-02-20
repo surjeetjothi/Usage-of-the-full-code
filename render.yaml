@@ -1,0 +1,33 @@
+services:
+  # Backend Service (Python/FastAPI)
+  - type: web
+    name: classbridge-backend
+    rootDir: backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SMTP_EMAIL
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+
+  # Frontend Service (Static Site)
+  - type: static
+    name: classbridge-frontend
+    rootDir: frontend
+    env: node
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
