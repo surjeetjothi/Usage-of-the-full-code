@@ -502,7 +502,14 @@ if USE_POSTGRES:
                 ip_address = info[0][4][0]
                 print(f"Resolved {hostname} to IPv4: {ip_address}")
                 # Simple string replacement of the host part
+                # IMPORTANT: Supabase connection strings often look like:
+                # postgresql://postgres:[pass]@db.zkd...supabase.co:5432/postgres
+                # We need to replace the HOSTNAME with the IP.
                 DATABASE_URL = DATABASE_URL_ENV.replace(hostname, ip_address)
+                # Also, append ?sslmode=require if not present, as Supabase requires SSL, 
+                # but sometimes IP connections fail verification unless we loosen it or config properly.
+                # Actually, connecting by IP might cause SSL validation error ("certificate valid for hostname, not IP").
+                # This is a risk. But let's first get TCP connection.
             else:
                  print(f"Could not resolve {hostname} to IPv4")
                  DATABASE_URL = DATABASE_URL_ENV
@@ -673,7 +680,9 @@ class PostgresConnectionWrapper:
         if not load_psycopg2():
             raise RuntimeError("Postgres requested but psycopg2 is not available.")
         try:
-            self.conn = psycopg2.connect(dsn, cursor_factory=DictCursor)
+            # Force IPv4 resolution manually again just to be safe, or assume dsn already has IP
+            # But we also add connect_timeout
+            self.conn = psycopg2.connect(dsn, cursor_factory=DictCursor, connect_timeout=10)
         except Exception as e:
             logger.error(f"DB Connection Error: {e}")
             raise e
