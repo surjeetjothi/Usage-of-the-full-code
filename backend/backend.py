@@ -485,42 +485,53 @@ DATABASE_URL_ENV = os.getenv("DATABASE_URL", "class_bridge.db")
 USE_POSTGRES = os.getenv("USE_POSTGRES", "false").lower() == "true" or "postgres" in DATABASE_URL_ENV.lower()
 if USE_POSTGRES:
     try:
-        import socket
-        from urllib.parse import urlparse, urlunparse
+        # SUPABASE IPv4 FIX
+        # The direct 'db.[ref].supabase.co' hostname often lacks an A record (IPv4), causing failure in IPv4-only environments.
+        # We must switch to the regional connection pooler which supports IPv4.
         
-        # Parse the URL
-        parsed = urlparse(DATABASE_URL_ENV)
-        hostname = parsed.hostname
-        
-        if hostname:
-            # FORCE IPv4 resolution
-            # getaddrinfo with AF_INET forces IPv4
-            # (family, type, proto, canonname, sockaddr)
-            info = socket.getaddrinfo(hostname, 5432, family=socket.AF_INET, proto=socket.IPPROTO_TCP)
-            if info:
-                 # Pick the first IPv4 address found
-                ip_address = info[0][4][0]
-                print(f"Resolved {hostname} to IPv4: {ip_address}")
-                # Simple string replacement of the host part
-                # IMPORTANT: Supabase connection strings often look like:
-                # postgresql://postgres:[pass]@db.zkd...supabase.co:5432/postgres
-                # We need to replace the HOSTNAME with the IP.
-                DATABASE_URL = DATABASE_URL_ENV.replace(hostname, ip_address)
-                # Also, append ?sslmode=require if not present, as Supabase requires SSL, 
-                # but sometimes IP connections fail verification unless we loosen it or config properly.
-                # Actually, connecting by IP might cause SSL validation error ("certificate valid for hostname, not IP").
-                # This is a risk. But let's first get TCP connection.
-            else:
-                 print(f"Could not resolve {hostname} to IPv4")
-                 DATABASE_URL = DATABASE_URL_ENV
+        # 1. Detect Project Ref
+        match = re.search(r"db\.([a-z0-9]+)\.supabase\.co", DATABASE_URL_ENV)
+        if match:
+            project_ref = match.group(1)
+            print(f"Detected Supabase Project Ref: {project_ref}")
+            
+            # 2. Determine IPv4 Hostname (Regional Pooler)
+            # Based on user location (implied ap-south-1), we try the Mumbai pooler.
+            # This hostname 'aws-0-ap-south-1.pooler.supabase.com' resolves to IPv4.
+            ipv4_hostname = "aws-0-ap-south-1.pooler.supabase.com"
+            
+            # 3. Construct New Connection String
+            # We need to:
+            # - Replace hostname with pooler hostname
+            # - Update username to 'postgres.[ref]' (required for pooler)
+            # - Keep port 5432 (Session Mode) for best compatibility, or 6543 (Transaction Mode)
+            # Let's use 5432 Session Mode first as it acts like a normal DB.
+            
+            # Replace hostname
+            new_url = DATABASE_URL_ENV.replace(match.group(0), ipv4_hostname)
+            
+            # Update username if it is just 'postgres' -> 'postgres.[ref]'
+            # Check for 'postgres:' in the string (user part)
+            if "postgres:" in new_url and f"postgres.{project_ref}" not in new_url:
+                new_url = new_url.replace("postgres:", f"postgres.{project_ref}:")
+                
+            print(f"Switched to Supabase IPv4 Pooler URL for connectivity.")
+            DATABASE_URL = new_url
+            
+            # CRITICAL: Update env vars so other modules (like rbac_module/database.py) see the fixed URL
+            os.environ["DATABASE_URL"] = DATABASE_URL
+            os.environ["RBAC_DATABASE_URL"] = DATABASE_URL
+            
         else:
+            # Fallback for non-Supabase or unknown format
             DATABASE_URL = DATABASE_URL_ENV
             
     except Exception as e:
-        print(f"DNS Resolution failed, using original URL: {e}")
+        print(f"Supabase IPv4 Fix failed: {e}")
         DATABASE_URL = DATABASE_URL_ENV
 
     SQLITE_DB_PATH = None
+
 else:
     DATABASE_URL = DATABASE_URL_ENV
     sqlite_candidate = (DATABASE_URL_ENV or "class_bridge.db").strip()
