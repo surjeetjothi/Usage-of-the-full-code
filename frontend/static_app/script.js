@@ -34,7 +34,7 @@ const resolvedLocalHost = (!window.location.hostname || window.location.hostname
     ? '127.0.0.1'
     : window.location.hostname;
 const LOCAL_API_BASE = `http://${resolvedLocalHost}:8000/api`;
-const PROD_API_DEFAULT = 'https://nexuxbackend.onrender.com/api';
+const PROD_API_DEFAULT = 'https://backend-files-deployment.onrender.com/api';
 // Allow override via window.__API_BASE_URL__ (optional)
 const API_BASE_URL = isLocal
     ? LOCAL_API_BASE
@@ -15347,9 +15347,9 @@ async function loadStudentAssignmentsExamSchedules() {
                     <div class="card-body p-3">
                         <div class="list-group list-group-flush">
                             ${scheduleFiles.map(r => {
-                                const fileExt = (r.file_path || '').split('.').pop().toLowerCase();
-                                const fullUrl = getResourceAbsoluteUrl(r.file_path || '');
-                                return `
+                const fileExt = (r.file_path || '').split('.').pop().toLowerCase();
+                const fullUrl = getResourceAbsoluteUrl(r.file_path || '');
+                return `
                                     <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
                                         <div>
                                             <div class="fw-semibold">${r.title || 'Exam Schedule PDF'}</div>
@@ -15363,7 +15363,7 @@ async function loadStudentAssignmentsExamSchedules() {
                                         </div>
                                     </div>
                                 `;
-                            }).join('')}
+            }).join('')}
                         </div>
                     </div>
                 </div>

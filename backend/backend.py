@@ -473,8 +473,11 @@ origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "null",
+    # Render backend URLs (for self-referencing or testing)
     "https://classbridge-backend-bqj3.onrender.com",
     "https://classbridge-backend-f82j.onrender.com",
+    "https://backend-files-deployment.onrender.com",
+    # Frontend (Vercel)
     "https://ed-tech-portal.vercel.app",
     "https://www.ed-tech-portal.vercel.app",
 ]
@@ -605,6 +608,15 @@ if os.path.isdir(FRONTEND_STATIC_DIR):
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(rbac_router)
 
+
+# ── Health-check endpoint (used by Render to confirm the server is alive) ──
+@app.get("/health", tags=["System"])
+async def health_check():
+    return {"status": "ok", "service": "ClassBridge Backend"}
+
+@app.get("/", tags=["System"])
+async def root():
+    return {"message": "ClassBridge API is running. Visit /docs for API docs."}
 
 
 MIN_ACTIVITIES = 5 
